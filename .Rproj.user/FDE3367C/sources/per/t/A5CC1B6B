@@ -1,0 +1,26 @@
+{
+    "id": "A5CC1B6B",
+    "path": "~/R/maya/arc_scripts/bird_calc_pd.R",
+    "project_path": "arc_scripts/bird_calc_pd.R",
+    "type": "r_source",
+    "hash": "3653608453",
+    "contents": "",
+    "dirty": false,
+    "created": 1723823468078.0,
+    "source_on_save": false,
+    "relative_order": 11,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "7,24",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1723823478,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1723823478799,
+    "read_only": false,
+    "read_only_alternatives": []
+}

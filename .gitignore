@@ -1,2 +1,3 @@
-# Ignore a specific path
-data
+ 
+data/
+useless/

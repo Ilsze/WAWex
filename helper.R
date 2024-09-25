@@ -77,9 +77,7 @@ add_mdat <- function(dat, mdat) {
 prop_prep <- function(dat) {
   #average abundance-years for all rows that share the same important variables as listed
   dat <- dat %>% 
-    #group_by maintains differentiation of rows over which we might expect different methods/
-    # locations to lead to large swings in abundance values that we'd want to only 
-    # aggregate after having found proportional change
+    # takes the median of abundance for records that share a method, species, date, depth, grain, and abundance type
     group_by(STUDY_ID, GENUS_SPECIES, YEAR, LATITUDE, LONGITUDE, PLOT, DEPTH, 
              GRAIN_SIZE_TEXT, GRAIN_SQ_KM, AREA_SQ_KM, ABUNDANCE_TYPE) %>%
     #want to summarise by abundance still taking the absolute sum because it 
@@ -373,7 +371,7 @@ fill_missing<- function(row, i, group) {
   return(row)
 }
 
-##function that produces raw yearly totals for each group
+##function that produces raw yearly totals for each group # PLOTS 1 OR 2
 raw_total <- function(bio_raw) {
   bio_yearly_total <- bio_raw %>%
     select(-GENUS_SPECIES) %>%  # Remove the GENUS_SPECIES column
@@ -384,7 +382,7 @@ raw_total <- function(bio_raw) {
   return(bio_yearly_total)
 }
 
-##function that produces and saves raw total plots
+##function that produces and saves raw total plots # PLOTS 1 OR 2
 plot_raw_total <- function(group_name, bio_total) {
   ggplot(bio_total, aes(x = Year, y = Total)) +
     geom_line() +
@@ -399,7 +397,7 @@ plot_raw_total <- function(group_name, bio_total) {
   ggsave(paste0("./output/group_raw_observed_totals/", group_name, "_raw_population_trend.png"), width = 10, height = 6, dpi = 300)
 }
 
-##function that produces and saves filled total plots
+##function that produces and saves filled total plots #PLOTS 1 OR 2
 plot_filled_total <- function(group_name, bio_ftotal) {
   ggplot(bio_ftotal, aes(x = Year, y = Total)) +
     geom_line() +
@@ -414,7 +412,7 @@ plot_filled_total <- function(group_name, bio_ftotal) {
   ggsave(paste0("./output/group_filled_observed_totals/", group_name, "_filled_population_trend.png"), width = 10, height = 6, dpi = 300)
 }
 
-##function that takes two pfilled and makes columns compatible
+##function that takes two pfilled and makes columns compatible # PLOTS 1 OR 2
 format <- function(filled1, filled2) {
   year_cols1 <- grep("^y_", colnames(filled1), value = TRUE)
   year_cols2 <- grep("^y_", colnames(filled2), value = TRUE)
@@ -462,13 +460,13 @@ calc_pd <- function(bio_filled) {
     d_col <- paste0("d_", col)
     bio_pd <- bio_pd %>% 
       mutate(!!d_col := {
-        rel_years <- max(min_year, curr_year - 3):max(min_year, curr_year - 1)
+        rel_years <- max(min_year, curr_year - 3):max(min_year, curr_year - 1) # establishes the years over which the "preceding median" is taken
         rel_cols <- paste0("y_", rel_years)
         med <- apply(select(., all_of(rel_cols)), 1, median)
         case_when(
-          .[[col]] == 0 & med == 0 ~ 1,  # 0/0 case
-          med == 0 ~ Inf,  # non-zero/0 case
-          TRUE ~ .[[col]] / med  # normal case
+          .[[col]] == 0 & med == 0 ~ 1,  # 0/0 case #if both this column and the median of the preceding three are zero, let the prop_change be 1
+          med == 0 ~ Inf,  # non-zero/0 case # if this column is not zero but the preceding median is, eventually make d_y the maximum finite value in each row
+          TRUE ~ .[[col]] / med  # normal case #otherwise, normal prop_change formula
         )
       })
   }

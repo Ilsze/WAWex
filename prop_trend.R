@@ -2,9 +2,6 @@ library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv) #for csv and data manipulation
 source("./helper.R")
 
-#To ask about: Should I first fill in the NULL that intervenes valid data with 
-# linearly increasing or decreasing values depending on the trend
-
 #LPD_original <- read_csv("./data/LPD2022_public_dat.csv") 
 
 # load animal time series data (I think this is 2018) (ALL PLOTS)

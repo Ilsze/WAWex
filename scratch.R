@@ -1,3 +1,5 @@
+## this file engages with LPD and BioTIME datasets
+
 #make bird columns compatible
 bio_bird2_extended <- format_and_stack(bio_bird1_filled, bio_bird2_filled)
 bio_bird2_filledex <- tibble()

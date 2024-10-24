@@ -5,16 +5,16 @@ source("./helper.R")
 #LPD_original <- read_csv("./data/LPD2022_public_dat.csv") 
 
 # load animal time series data (I think this is 2018) (ALL PLOTS)
-bio_amph <- read_csv("./data/bio_amph_dat.csv") #amphibian
-bio_bird <- read_csv("./data/bio_bird_dat.csv") #bird
-bio_fish1 <- read_csv("./data/bio_fish1_dat.csv") #fish1
-bio_fish2 <- read_csv("./data/bio_fish2_dat.csv") #fish2 
+bio_amph <- read_csv("./data/biotime/bio_amph_dat.csv") #amphibian
+bio_bird <- read_csv("./data/biotime/bio_bird_dat.csv") #bird
+bio_fish1 <- read_csv("./data/biotime/bio_fish1_dat.csv") #fish1
+bio_fish2 <- read_csv("./data/biotime/bio_fish2_dat.csv") #fish2 
 bio_fish <- rbind(bio_fish1, bio_fish2)
-bio_mam <- read_csv("./data/bio_mam_dat.csv") #mammal
-bio_rep <- read_csv("./data/bio_rep_dat.csv") #reptile
-bio_finv <- read_csv("./data/bio_finv_dat.csv") #freshwater invertebrate
-bio_minv <- read_csv("./data/bio_minv_dat.csv") #marine invertebrate
-bio_tinv <- read_csv("./data/bio_tinv_dat.csv") #terrestrial invertebrate
+bio_mam <- read_csv("./data/biotime/bio_mam_dat.csv") #mammal
+bio_rep <- read_csv("./data/biotime/bio_rep_dat.csv") #reptile
+bio_finv <- read_csv("./data/biotime/bio_finv_dat.csv") #freshwater invertebrate
+bio_minv <- read_csv("./data/biotime/bio_minv_dat.csv") #marine invertebrate
+bio_tinv <- read_csv("./data/biotime/bio_tinv_dat.csv") #terrestrial invertebrate
 # stack time series data
 # bio <- rbind(bio_amph, bio_bird, bio_fish, bio_mam, bio_rep, bio_finv, bio_minv, bio_tinv)
 

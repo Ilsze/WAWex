@@ -1,3 +1,5 @@
+##this file engages with LPD and BioTIME datasets
+
 ##function that checks whether any "record" differs in their "study"
 # Load required library
 check_record_study <- function(data) {

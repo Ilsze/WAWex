@@ -1,7 +1,5 @@
-## SCRIPT GUIDE
-prop_trend.R contains the most relevant code for the latest population trend (proportional change) results. 
-helper.R contains helper functions
-arc_scripts.R contains code meant for computing clusters to run
+## GUIDE TO SCRIPTS AND DATA
+See google doc section here: https://docs.google.com/document/d/1UO8U8SbEmjn5-ZJiG06v6y_bGqGIeJXaWeM63hopaG0/edit?tab=t.z6zsxus96gkl#bookmark=id.46tnzbgiawnc
 
 ## GITIGNORE
 Data is not tracked as files are too large for git

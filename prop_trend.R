@@ -1,6 +1,6 @@
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv) #for csv and data manipulation
-source("./helper.R")
+source("./helper_prop_trend.R")
 
 #LPD_original <- read_csv("./data/LPD2022_public_dat.csv") 
 

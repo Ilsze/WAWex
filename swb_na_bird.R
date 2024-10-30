@@ -106,7 +106,7 @@ na_pop_us_swb <- merge(final_table, un_7023, by = "Time", all = TRUE) %>%
          LSTot = PopTot*mean_life_satisfaction) 
 #LSTot is the variable we're interested in, standing for total life satisfaction at that period of time
 
-#load bird data UTH
+#load bird data 
 overall_bird_n <- read_csv("./AdamCSmithCWS-Estimating_Change_in_NorthAmerican_Birds-a78d595/overall avifauna trajectories N and loss.csv") %>% 
   select("year", "N_med", "Loss_med")
 
@@ -114,12 +114,10 @@ overall_bird_n <- read_csv("./AdamCSmithCWS-Estimating_Change_in_NorthAmerican_B
 # Assuming na_pop_us_swb has "Time" column and overall_bird_n has "year" column
 # First rename year in bird dataset to match the other data
 names(overall_bird_n)[names(overall_bird_n) == "year"] <- "Time"
-# Rename Loss_med to Loss_med_c to indicate cumulative status
-names(overall_bird_n)[names(overall_bird_n) == "Loss_med"] <- "Loss_med_c"
 
 # Merge the datasets
 swb_bird_na <- merge(na_pop_us_swb, 
-                     overall_bird_n[c("Time", "N_med", "Loss_med_c")],
+                     overall_bird_n[c("Time", "N_med", "Loss_med")],
                      by = "Time", 
                      all.x = TRUE)
 
@@ -131,21 +129,21 @@ swb_bird_na <- swb_bird_na[order(swb_bird_na$Time),]
 ################## NOW GET BIRDS LOST PER UTIL DATA
 #produce number of birds lost per util
 #number of LS utils in base year
-base_LS <- swb_bird_na$LSTot[[1]]
-swb_bird_na <- swb_bird_na %>% 
-  mutate(LS_c = cumsum(LSTot) - base_LS, 
-         LS_per_bird_c = ifelse(Loss_med_c == 0, NA, -LS_c / Loss_med_c), #cumulative LS per cumulative bird lost. (-) sign is because bird loss is negative
-         N_med_d = N_med - lag(N_med, default = first(N_med)), #change in bird year-to-year
-         LS_d = LSTot - lag(LSTot, default = first(LSTot)), #change in LS year-to-year
-         LS_per_bird_d = ifelse(N_med_d == 0, NA, LS_d / N_med_d)) #LS gained per bird lost that year 
-
-#now get bird swb using Hadza baseline
+LSTot_base <- swb_bird_na$LSTot[[1]]
+N_med_base <- swb_bird_na$N_med[[1]]
 LS_constant_Hadza <- 8.245
-swb_bird_na <- swb_bird_na %>% 
-  mutate(LSTot_bird = N_med * LS_constant_Hadza, #LS points accruing to birds that year
-         LS_bird_c = -Loss_med_c * LS_constant_Hadza, #LS points lost to birds since 1970. (-) sign is because bird loss is negative
-         LS_per_bird_LS_c = ifelse(LS_bird_c == 0, NA, LS_c/LS_bird_c)) #LS points gained by humans since 1970 for every bird LS lost since 1970
-
+swb_bird_na <- swb_bird_na %>%
+          #In all the years from 1970 to the present year, how many extra LS-point-years do North American humans have compared to if population and LS per person hadn't changed since 1970?
+  mutate(LS_c = sapply(1:n(), function(i) sum(LSTot[1:i])) - row_number()*LSTot_base,
+         #In all the years from 1970 to the present year, how many extra bird-years were lost compared to if bird populations hadn't changed since 1970? 
+         Loss_med_c = sapply(1:n(), function(i) -sum(N_med[1:i])) + row_number()*N_med_base, #sign flip to report loss as a positive number
+         #In all the years from 1970 to the present year, how many extra bird LS-point-years were lost compared to if bird populations hadn't changed since 1970?
+         Loss_LS_bird_c = Loss_med_c * LS_constant_Hadza,
+         #In all the years from 1970 to the present year, how many human LS-point-years were gained for every bird-year lost?
+         LS_per_bird_c = ifelse(Loss_med_c == 0, NA, LS_c/Loss_med_c),
+         #In all the years from 1970 to the present year, how many human LS-point-years were gained for every bird LS-point-year lost?
+         LS_per_bird_LS_c = ifelse(Loss_med_c == 0, NA, LS_c/Loss_LS_bird_c))
+        
 ###############################################################################
 #####################   PLOTTING     ##########################################
 ###############################################################################

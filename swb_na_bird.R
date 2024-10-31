@@ -118,9 +118,15 @@ swb_bird_na <- swb_bird_na %>%
 ##save swb_bird_na
 write_rds(swb_bird_na, "./dat/swb_bird_na_raw.rds")
 
-############ ANY FURTHER MUTATIONS
+############ ANY FURTHER MUTATIONS AFTER SWITCHING LAPTOP
 swb_bird_na <- read_rds("./dat/swb_bird_na_raw.rds")
+GDP <- read_rds("dat/world_bank/GDP.rds")
+
+# new columns
 swb_bird_na <- swb_bird_na %>% 
-  mutate(
-    # Bird LSTot
-    LSTot_bird = N_med * LS_constant_Hadza  )
+  mutate(# Bird LSTot
+    LSTot_bird = N_med * LS_constant_Hadza) %>% 
+  merge(GDP, by = "Time", all.x = TRUE)
+
+
+

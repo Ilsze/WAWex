@@ -33,6 +33,8 @@ final_year <- max(swb_bird_na$Time, na.rm = TRUE)
 final_LSTot <- swb_bird_na$LSTot[swb_bird_na$Time == final_year]
 final_birds <- swb_bird_na$N_med[swb_bird_na$Time == final_year]
 final_LSTot_bird <- swb_bird_na$LSTot_bird[swb_bird_na$Time == final_year]
+final_GDP <- swb_bird_na$GDP[swb_bird_na$Time == final_year]
+final_PopTot <- swb_bird_na$PopTot[swb_bird_na$Time == final_year]
 
 # Function to format numbers in billions with 1 significant figure
 format_billions <- function(x) {
@@ -74,7 +76,7 @@ plot_Time_LSTot_Nmed <- ggplot(swb_bird_na, aes(x = Time)) +
   labs(
     x = "Year",
     y = "Value",
-    title = "Human Utils and Bird Population that Year Over Time"
+    title = "Aggregate Human Life Satisfaction and Bird Population Over Time (US and Canada)"
   ) +
   theme_minimal() +
   theme(
@@ -84,7 +86,7 @@ plot_Time_LSTot_Nmed <- ggplot(swb_bird_na, aes(x = Time)) +
     # Much larger text sizes
     axis.title = element_text(size = 24),          # Axis titles
     axis.text = element_text(size = 20),           # Axis text
-    plot.title = element_text(size = 28),          # Plot title
+    plot.title = element_text(size = 26),          # Plot title
     legend.text = element_text(size = 20),         # Legend text
     legend.title = element_text(size = 24)         # Legend title
   ) +
@@ -132,7 +134,7 @@ plot_Time_LSTots <- ggplot(swb_bird_na, aes(x = Time)) +
   labs(
     x = "Year",
     y = "Value (log scale)",
-    title = "Human Utils and Bird Population that Year Over Time"
+    title = "Aggregate Human Life Satisfaction and Aggregate Bird Life Satisfaction Over Time (US and Canada)"
   ) +
   theme_minimal() +
   theme(
@@ -141,15 +143,126 @@ plot_Time_LSTots <- ggplot(swb_bird_na, aes(x = Time)) +
     panel.background = element_rect(fill = "white", color = NA),
     axis.title = element_text(size = 24),
     axis.text = element_text(size = 20),
-    plot.title = element_text(size = 28),
+    plot.title = element_text(size = 22),
     legend.text = element_text(size = 20),
     legend.title = element_text(size = 24)
   ) +
   scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
-
 ggsave(
   filename = "output/swb_bird_na/time_LSTots.png",
   plot = plot_Time_LSTots,
+  width = 15,
+  height = 10,
+  dpi = 300,
+  bg = "white"
+)
+
+# Create the GDP vs birds plot
+plot_Time_GDP_Nmed <- ggplot(swb_bird_na, aes(x = Time)) +
+  # Add GDP line
+  geom_line(aes(y = GDP, color = "GDP (USD)"), linewidth = 1.5) +
+  # Add bird population line
+  geom_line(aes(y = N_med, color = "Bird Population"), linewidth = 1.5) +
+  # Add labels at the end of each line
+  annotate("text", 
+           x = final_year + 0.5,
+           y = final_GDP,
+           label = format_billions(final_GDP),
+           color = "blue",
+           hjust = 0,
+           size = 8) +
+  annotate("text", 
+           x = final_year + 0.5,
+           y = final_birds,
+           label = format_billions(final_birds),
+           color = "red",
+           hjust = 0,
+           size = 8) +
+  # Custom colors
+  scale_color_manual(
+    name = "", 
+    values = c("GDP (USD)" = "blue", "Bird Population" = "red")
+  ) +
+  # Add log scale for y-axis
+  scale_y_log10() +
+  # Labels and theme
+  labs(
+    x = "Year",
+    y = "Value",
+    title = "GDP and Bird Population Over Time (US and Canada)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    axis.title = element_text(size = 24),
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 26),
+    legend.text = element_text(size = 20),
+    legend.title = element_text(size = 24)
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
+# Save the GDP plot
+ggsave(
+  filename = "output/swb_bird_na/time_GDP_Nmed.png",
+  plot = plot_Time_GDP_Nmed,
+  width = 15,
+  height = 10,
+  dpi = 300,
+  bg = "white"
+)
+
+# Create the Population vs birds plot
+plot_Time_PopTot_Nmed <- ggplot(swb_bird_na, aes(x = Time)) +
+  # Add population line
+  geom_line(aes(y = PopTot, color = "Human Population"), linewidth = 1.5) +
+  # Add bird population line
+  geom_line(aes(y = N_med, color = "Bird Population"), linewidth = 1.5) +
+  # Add labels at the end of each line
+  annotate("text", 
+           x = final_year + 0.5,
+           y = final_PopTot,
+           label = format_billions(final_PopTot),
+           color = "blue",
+           hjust = 0,
+           size = 8) +
+  annotate("text", 
+           x = final_year + 0.5,
+           y = final_birds,
+           label = format_billions(final_birds),
+           color = "red",
+           hjust = 0,
+           size = 8) +
+  # Custom colors
+  scale_color_manual(
+    name = "", 
+    values = c("Human Population" = "blue", "Bird Population" = "red")
+  ) +
+  # Add log scale for y-axis
+  scale_y_log10() +
+  # Labels and theme
+  labs(
+    x = "Year",
+    y = "Value",
+    title = "Human Population and Bird Population Over Time (US and Canada)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    axis.title = element_text(size = 24),
+    axis.text = element_text(size = 20),
+    plot.title = element_text(size = 26),
+    legend.text = element_text(size = 20),
+    legend.title = element_text(size = 24)
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0.02, 0.15)))
+# Save the Population plot
+ggsave(
+  filename = "output/swb_bird_na/time_PopTot_Nmed.png",
+  plot = plot_Time_PopTot_Nmed,
   width = 15,
   height = 10,
   dpi = 300,

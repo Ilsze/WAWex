@@ -50,4 +50,4 @@ swb_us <- swb_us %>%
   mutate(S020 = as.numeric(as.character(S020)))
 
 #save dataset so don't have to load ivs from scratch each time
-write_rds(swb_us, "./data/int_val_surv/swb_us.rds")
+write_rds(swb_us, "./data/int_val_surv/swb_us.rds") 

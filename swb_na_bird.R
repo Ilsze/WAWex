@@ -4,35 +4,7 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
        stringr, readxl, foreign, broom, knitr, data.table) 
 
 #load US SWB data
-swb_us <- read_rds("./data/int_val_surv/swb_us.rds")
-
-# Function to create plot with connected points and best fit line
-create_plot <- function(data, y_var, title, y_label) {
-  ggplot(data, aes(x = S020, y = !!sym(y_var))) +
-    geom_line() +  # Connect points with a line
-    geom_point() +  # Add points
-    geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +  # Add best fit line
-    theme_minimal() +
-    labs(title = title,
-         x = "Year",
-         y = y_label) +
-    scale_x_continuous(breaks = unique(data$S020))
-}
-
-# Create plots
-plot_satisfaction <- create_plot(swb_us, "mean_life_satisfaction", 
-                                 "Mean Life Satisfaction in the US Over Time", 
-                                 "Mean Life Satisfaction")
-
-plot_happiness <- create_plot(swb_us, "mean_happiness", 
-                              "Mean Happiness in the US Over Time", 
-                              "Mean Happiness")
-
-# Display the plots
-print(plot_satisfaction)
-print(plot_happiness)
-#display them side by side
-grid.arrange(plot_satisfaction, plot_happiness, ncol = 2)
+swb_us <- read_rds("./dat/int_val_surv/swb_us.rds")
 
 # If you want to save the plots, you can use ggsave:
 # ggsave("life_satisfaction_plot.png", plot_satisfaction, width = 10, height = 6)
@@ -143,10 +115,40 @@ swb_bird_na <- swb_bird_na %>%
          LS_per_bird_c = ifelse(Loss_med_c == 0, NA, LS_c/Loss_med_c),
          #In all the years from 1970 to the present year, how many human LS-point-years were gained for every bird LS-point-year lost?
          LS_per_bird_LS_c = ifelse(Loss_med_c == 0, NA, LS_c/Loss_LS_bird_c))
-        
+##save swb_bird_na
+write_rds(swb_bird_na, "./dat/swb_bird_na.rds")
 ###############################################################################
 #####################   PLOTTING     ##########################################
 ###############################################################################
+
+# Function to create plot with connected points and best fit line using US SWB  data
+create_plot <- function(data, y_var, title, y_label) {
+  ggplot(data, aes(x = S020, y = !!sym(y_var))) +
+    geom_line() +  # Connect points with a line
+    geom_point() +  # Add points
+    geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +  # Add best fit line
+    theme_minimal() +
+    labs(title = title,
+         x = "Year",
+         y = y_label) +
+    scale_x_continuous(breaks = unique(data$S020))
+}
+
+# Create plots
+plot_satisfaction <- create_plot(swb_us, "mean_life_satisfaction", 
+                                 "Mean Life Satisfaction in the US Over Time", 
+                                 "Mean Life Satisfaction")
+
+plot_happiness <- create_plot(swb_us, "mean_happiness", 
+                              "Mean Happiness in the US Over Time", 
+                              "Mean Happiness")
+
+# Display the plots
+print(plot_satisfaction)
+print(plot_happiness)
+#display them side by side
+grid.arrange(plot_satisfaction, plot_happiness, ncol = 2)
+
 
 ##################Plot human utils on the x axis and bird numbers on the y axis
 # Create scaled version of N_med to plot on same axis 

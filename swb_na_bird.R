@@ -98,7 +98,7 @@ swb_bird_na <- swb_bird_na[order(swb_bird_na$Time),]
 
 ################## RAW BIRD, SWB, TIME DATA HAS NOW BEEN ACHIEVED. time_swb_bird.png plot can now be made.
 
-################## NOW GET BIRDS LOST PER UTIL DATA
+################## NOW manipulate as desired to GET BIRDS LOST PER UTIL DATA
 #produce number of birds lost per util
 #number of LS utils in base year
 LSTot_base <- swb_bird_na$LSTot[[1]]
@@ -116,76 +116,11 @@ swb_bird_na <- swb_bird_na %>%
          #In all the years from 1970 to the present year, how many human LS-point-years were gained for every bird LS-point-year lost?
          LS_per_bird_LS_c = ifelse(Loss_med_c == 0, NA, LS_c/Loss_LS_bird_c))
 ##save swb_bird_na
-write_rds(swb_bird_na, "./dat/swb_bird_na.rds")
-###############################################################################
-#####################   PLOTTING     ##########################################
-###############################################################################
+write_rds(swb_bird_na, "./dat/swb_bird_na_raw.rds")
 
-# Function to create plot with connected points and best fit line using US SWB  data
-create_plot <- function(data, y_var, title, y_label) {
-  ggplot(data, aes(x = S020, y = !!sym(y_var))) +
-    geom_line() +  # Connect points with a line
-    geom_point() +  # Add points
-    geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed") +  # Add best fit line
-    theme_minimal() +
-    labs(title = title,
-         x = "Year",
-         y = y_label) +
-    scale_x_continuous(breaks = unique(data$S020))
-}
-
-# Create plots
-plot_satisfaction <- create_plot(swb_us, "mean_life_satisfaction", 
-                                 "Mean Life Satisfaction in the US Over Time", 
-                                 "Mean Life Satisfaction")
-
-plot_happiness <- create_plot(swb_us, "mean_happiness", 
-                              "Mean Happiness in the US Over Time", 
-                              "Mean Happiness")
-
-# Display the plots
-print(plot_satisfaction)
-print(plot_happiness)
-#display them side by side
-grid.arrange(plot_satisfaction, plot_happiness, ncol = 2)
-
-
-##################Plot human utils on the x axis and bird numbers on the y axis
-# Create scaled version of N_med to plot on same axis 
-coef <- max(swb_bird_na$LSTot, na.rm = TRUE) / max(swb_bird_na$N_med, na.rm = TRUE)
-swb_bird_na$N_med_scaled <- swb_bird_na$N_med * coef
-
-# Create the plot
-p <- ggplot(swb_bird_na, aes(x = Time)) +
-  # Add life satisfaction line
-  geom_line(aes(y = LSTot, color = "Life Satisfaction"), size = 1) +
-  # Add bird population line
-  geom_line(aes(y = N_med_scaled, color = "Bird Population"), size = 1) +
-  # Custom colors
-  scale_color_manual(name = "", values = c("Life Satisfaction" = "blue", "Bird Population" = "red")) +
-  # Add primary y-axis
-  scale_y_continuous(
-    name = "Life Satisfaction Total",
-    # Add secondary y-axis
-    sec.axis = sec_axis(~./coef, name = "Bird Population")
-  ) +
-  # Add labels and theme
-  labs(
-    x = "Year",
-    title = "Life Satisfaction Total and Bird Population Over Time"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "top",
-    axis.title.y.right = element_text(color = "red"),
-    axis.title.y.left = element_text(color = "blue")
-  )
-
-# Save the plot
-ggsave(
-  filename = "output/swb_bird_na/time_swb_bird.png",
-  plot = p,
-  width = 10,
-  height = 7,
-  dpi = 300
-)
+############ ANY FURTHER MUTATIONS
+swb_bird_na <- read_rds("./dat/swb_bird_na_raw.rds")
+swb_bird_na <- swb_bird_na %>% 
+  mutate(
+    # Bird LSTot
+    LSTot_bird = N_med * LS_constant_Hadza  )

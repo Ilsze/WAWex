@@ -1,3 +1,4 @@
+#This file graphs biotime animal group population trends
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png) #for csv and data manipulation
 source("./helper.R")

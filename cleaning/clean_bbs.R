@@ -2,9 +2,13 @@
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, stringr) 
 
-#read in al the datasets in bbs
+
+
+###################   PUT ALL States.zip  INFO INTO SINGLE CSV    ##############
+
+#read in all the datasets in bbs
 # Set the path to your folder containing datasets
-file_path <- "./data/bbs"
+file_path <- "./dat/bbs/States"
 # Get a list of all files in the folder
 file_list <- list.files(path = file_path, full.names = TRUE)
 # Create an empty list to store the datasets
@@ -31,6 +35,14 @@ for (dataset_name in names(dat_list)) {
 raw <- bind_rows(dat_list)
 names(raw)
 
+#save
+write_csv(raw, "dat/bbs/states_agg.csv")
+
+
+
+
+
+##############  CHECK DATA QUALITIES    ########################################
 #check extant
 extinct_species <- raw %>%
   # Filter for the year 2023

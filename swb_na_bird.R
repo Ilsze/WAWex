@@ -1,4 +1,6 @@
-#this file loads swb data from the US, taken from IVS and appends it to NA population data.
+#this file loads swb data from the US, taken from IVS and appends it to NA 
+# population data. It then compares population trends from Rosenberg
+
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, foreign, broom, knitr, data.table) 

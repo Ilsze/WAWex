@@ -1,7 +1,7 @@
 ## This file cleans world bank data
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
-       stringr, readxl, foreign, broom, knitr, data.table) 
+       stringr, readxl, foreign, broom, knitr, data.table, zoo) 
 
 ############ clean HFCE data ####################################################
 HFCE_dat <- read_csv("dat/world_bank/world_bank_HFCE.csv")
@@ -51,7 +51,39 @@ ggplot(HFCE_long, aes(x = Time, y = HFCE, color = Country)) +
 
 
 ############ clean GDP data ####################################################
+GDP_raw <- read_excel("dat/world_bank/world_bank_GDP.xlsx")
 
+#pivot and clean
+GDP_dat <- GDP_raw %>%
+  pivot_longer(
+    cols = "1960 [YR1960]":"2023 [YR2023]",
+    names_to = "Year",
+    values_to = "GDP"
+  ) %>%
+  mutate(Year = as.integer(str_sub(Year, 1, -10)), #remove the last nine characters
+  GDP = as.numeric(na_if(GDP, ".."))) %>%  # Convert ".." to NA and then to numeric 
+  #remove locations with no data
+  filter(!Country_Name %in% c("British Virgin Islands", "Gibraltar", 
+                              "Korea, Dem. People's Rep.")) %>% 
+  arrange(Country_Name, Year) %>%
+  group_by(Country_Name) 
+
+#Fill missing data using linear interpolation, and for end values, the closest
+#known value. 
+GDP_dat <- GDP_dat %>%
+  mutate(
+    GDP_filled = na.approx(GDP, x = Year, na.rm = FALSE),  # Linear interpolation
+    GDP_filled = na.locf(GDP_filled, na.rm = FALSE),       # Fill remaining NAs from last known value
+    GDP_filled = na.locf(GDP_filled, fromLast = TRUE, na.rm = FALSE)  # Fill leading NAs from next known value
+  ) %>%
+  ungroup()
+
+#save to file
+write.xlsx(GDP_dat, "dat/world_bank/GDP_world_clean.xlsx")
+
+
+
+########## US AND CANADA ONLY (EARLY BIRD SWB ATTEMPT)  #######################
 
 GDP_long <- GDP_dat %>%
   # Filter for just US and Canada

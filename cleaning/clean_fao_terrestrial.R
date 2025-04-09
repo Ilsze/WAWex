@@ -22,16 +22,95 @@ livestock_clean <- livestock %>%
 #save 
 write.xlsx(livestock_clean, "dat/fao/fao_terrestrial_livestock_clean.xlsx")
 
+#aggregate country to global levels
+livestock_g_clean <- livestock_clean %>% 
+  group_by(Year, Item) %>% 
+  summarise(Value= sum(Value, na.rm = TRUE), .groups = "drop")
+
+#write global version 
+write.xlsx(livestock_g_clean, "dat/fao/fao_terrestrial_livestock_global_clean.xlsx")
+
+
+############# FOR COPYING INTO CALCULATIONS #############################
+livestock_g_clean <- read_excel("dat/fao/fao_terrestrial_livestock_global_clean.xlsx")
+#keep only Item, Year, and Value
+livestock_4_calc <- select(livestock_g_clean, c(Item, Year, Value)) %>% 
+  #ascribe welfare potential
+  mutate(Welfare_potential = case_when(
+    Item == "Bees" ~ 0.071,
+    Item %in% c("Chickens", "Ducks", "Geese", "Other birds", "Turkeys") ~ 0.327,
+    Item %in% c("Asses", "Buffalo", "Camels", "Cattle", "Goats", "Horses", 
+                "Mules and hinnies", "Other camelids", "Rabbits and hares", "Sheep") ~ 0.4195,
+    Item %in% c("Other rodents", "Swine / pigs") ~ 0.512,
+    TRUE ~ NA_real_
+  )) %>% 
+  arrange(Item, Year)
+##TODO at some point: consider smoothing
+
+#write to file
+write.xlsx(livestock_4_calc, "dat/fao/fao_terrestrial_livestock_for_calculations.xlsx")
+
+
 ###################### FOR VIEWING PURPOSES ############################
 #View only 2023 data
 livestock_clean_2023 <- livestock_clean %>% 
   filter(Year == 2023)
 
-##################### PROP CHANGE DATA #######################################
-#read livestock_clean 
-t_livestock <- read_excel("dat/fao/fao_terrestrial_livestock_clean.xlsx")
 
-
+#chicken
+ggplot(filter(livestock_4_calc, Item == "Chickens"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Chicken Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
+#cattle
+ggplot(filter(livestock_4_calc, Item == "Cattle"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Cattle Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
+#pigs and swine
+ggplot(filter(livestock_4_calc, Item == "Swine / pigs"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Pigs and Swine Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
+#bees
+ggplot(filter(livestock_4_calc, Item == "Bees"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Bees Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
+#goats
+ggplot(filter(livestock_4_calc, Item == "Goats"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Goats Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
+#asses
+ggplot(filter(livestock_4_calc, Item == "Asses"), aes(x = Year, y = Value)) +
+  geom_point() +
+  labs(
+    title = "Asses Population Over Time",
+    x = "Year",
+    y = "Value"
+  ) +
+  theme_minimal()
 
 
 

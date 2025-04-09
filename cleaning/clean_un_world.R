@@ -4,7 +4,7 @@ library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table)  
 
-############# POPULATION DATA CLEANING: WORLD AGGREGATE #########################################
+############# POPULATION DATA CLEANING: WORLD AGGREGATE ################
 #only has Location = "World" data
 un_world_dat <- read_csv("dat/un/unpopulation_dataportal_20250211133511.csv")
 
@@ -20,18 +20,21 @@ write.xlsx(un_w5025, "./dat/un/un_w5025.xlsx")
 #this data is by single age, annually for 1950-2023 in thousands
 un_raw <- read_xlsx("dat/un/WPP2024_POP_F01_1_POPULATION_SINGLE_AGE_BOTH_SEXES.xlsx", skip = 16) 
 
+un_ctry <- un_raw %>% 
+  filter(Type == "Country/Area")
+
 #prepare to sum across age groups
 age_cols <- as.character(0:99) %>% c("100+")
 
 #filter for Type = Country/Area
-un_dat <- un_raw %>% 
+un_dat <- un_ctry %>% 
   #rename col name
-  rename(Country = `Region, subregion, country or area *`) %>%  # rename for sanity
-  filter(Type == "Country/Area") %>% 
+  rename(Country = `Region, subregion, country or area *`,
+         Code = `ISO3 Alpha-code`) %>%  # rename for sanity
   #ensure age values are numeric
   mutate(across(all_of(age_cols), ~ as.numeric(.))) %>%
   #combine age
-  group_by(Country, Year) %>% 
+  group_by(Country, Code, Year) %>%
   summarise(Total = sum(across(all_of(age_cols)), na.rm = TRUE), .groups = "drop") %>% 
   ungroup() %>% 
   #rescale numbers

@@ -3,7 +3,7 @@ library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)  
 
-######################## CORRELATIONS AND REGRESSIONS with 1 ###################
+############## EGALITARIAN CORRELATIONS AND REGRESSIONS ###################
 #read in time series
 calc_tseries <- read_excel("first_pass/calc_tseries.xlsx")
 #get nonhuman categories:
@@ -52,10 +52,12 @@ for (category in nh_cat) {
             Elasticity = elasticity)
 }
 
+#spreadsheet has category, correlation, and elasticity variables only
 write.xlsx(cor_and_elasticity, "first_pass/cor_and_elas.xlsx")
 
 
 ########################## STRAIGHT FACTOR CHANGE ############################## 
+##produces "factor change in aliveatanytime over the available time periods"
 #initialise vector with factor change
 f_change <- data.frame(Category = character(), Factor_change = numeric(), stringsAsFactors = FALSE)
 
@@ -79,5 +81,6 @@ for (category in unique(calc_tseries$Category)) {
 write.xlsx(f_change, "first_pass/f_change.xlsx")
 
 
-################### REGGRESION RESULTS ##########################
+
+
 

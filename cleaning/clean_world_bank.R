@@ -14,8 +14,10 @@ wb_pop_gdp <- wb_pop_gdp %>%
 #sum the columns
 column_sums <- colSums(wb_pop_gdp[6:12], na.rm = TRUE)
 max_index <- which.max(column_sums) #returns the third one down
+#actually, don't want LCU, so disqualify 3 and 4 and 5
+which.max(c(column_sums[1], column_sums[2], column_sums[6])) #returns 2 of 6
 #rename that column 
-wb_pop_gdp_s <- rename(wb_pop_gdp, GDP_pc = `GDP per capita (constant LCU) [NY.GDP.PCAP.KN]`,
+wb_pop_gdp_s <- rename(wb_pop_gdp, GDP_pc = `GDP per capita, PPP (current international $) [NY.GDP.PCAP.PP.CD]`, #UTH DON"T USE LOCAL CURR
                      Country = `Country Name`,
                      Country_Code = `Country Code`,
                      Population = `Population, total [SP.POP.TOTL]`, 

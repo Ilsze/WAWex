@@ -86,13 +86,14 @@ run_complete_welfare_analysis <- function(human_data_path,
   integrated_data <- ensure_nc_columns(integrated_data)
   integrated_data <- ensure_wr_columns(integrated_data)
   
-  # Save integrated data
-  write.xlsx(integrated_data, file.path(output_dir, "second_pass/integrated_calc_tseries.xlsx"))
+  # Save integrated data - with fixed path
+  integrated_data_path <- file.path(output_dir, "integrated_calc_tseries.xlsx") 
+  write.xlsx(integrated_data, integrated_data_path)
   
   # Step 6: Run analysis on integrated data
   cat("Step 6: Running welfare analysis on integrated data...\n")
   analysis_results <- analyze_welfare_data(
-    data_path = file.path(output_dir, "integrated_calc_tseries.xlsx"),
+    data_path = integrated_data_path,
     welfare_level_method = welfare_level_method,
     welfare_potential_method = welfare_potential_method,
     output_dir = file.path(output_dir, "analysis_results"),

@@ -213,7 +213,7 @@ calculate_aggregate_welfare <- function(data, threshold) {
 human_wWL_3282 <- calculate_aggregate_welfare(wb_6023, threshold)
 
 # Optional: Save the results to a CSV file
-write.xlsx(human_wWL_3282, "first_pass/human_wWL_3282.xlsx", row.names = FALSE)
+write.xlsx(human_wWL_3282, "first_pass/human_wWL_3282.xlsx", rowNames = FALSE)
 
 #visualisations of total and average global welfare per capita over time
 # Create a plot to visualize welfare over time

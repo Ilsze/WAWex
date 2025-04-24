@@ -166,7 +166,7 @@ calculate_human_welfare_levels <- function(data_path,
   
   # Save results to file
   output_file <- file.path(output_dir, paste0("human_wWL_", method, ".xlsx"))
-  write.xlsx(human_welfare_results, output_file, row.names = FALSE)
+  write.xlsx(human_welfare_results, output_file, rowNames = FALSE)
   cat("Results saved to", output_file, "\n")
   
   # Return results
@@ -194,7 +194,7 @@ prepare_human_data_for_integration <- function(human_welfare_data, output_file =
   
   # Save to file if specified
   if(!is.null(output_file)) {
-    write.xlsx(human_data_formatted, output_file, row.names = FALSE)
+    write.xlsx(human_data_formatted, output_file, rowNames = FALSE)
     cat("Prepared human data saved to", output_file, "\n")
   }
   

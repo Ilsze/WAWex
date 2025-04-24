@@ -5,7 +5,7 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, pdf, mgcv, tidyselect,
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)  
 
 calc_tseries <- read_excel("first_pass/calc_tseries.xlsx")
-net_utility <- read_excel("first_pass/net_utility.xlsx")
+net_series <- read_excel("first_pass/net_series.xlsx") 
 
 # Remove rows with NA utility if needed
 filtered_data <- calc_tseries %>%
@@ -19,7 +19,7 @@ ggplot(filtered_data, aes(x = Year, y = aliveatanytime, colour = Category, group
   geom_line() +
   labs(title = "Population Over Time - Selected Captive Animals", y = "Population (alive at any time)", x = "Year") +
   theme_minimal()
-ggsave("first_pass/population_trends_f.pdf", width = 10, height = 6)
+ggsave("first_pass/population_trends/population_trends_f.pdf", width = 10, height = 6)
 
 # Plot 2: Utility over time
 ggplot(filtered_data, aes(x = Year, y = utility, colour = Category, group = interaction(Group, Category))) +
@@ -38,7 +38,7 @@ ggplot(hscnb, aes(x = Year, y = aliveatanytime, colour = Category, group = inter
   geom_line() +
   labs(title = "Population Over Time - Selected Captive Animals, No Bees", y = "Population (alive at any time)", x = "Year") +
   theme_minimal()
-ggsave("first_pass/population_trends_f_nb.pdf", width = 10, height = 6)
+ggsave("first_pass/population_trends/population_trends_f_nb.pdf", width = 10, height = 6)
 
 # Plot 2: Utility over time
 ggplot(hscnb, aes(x = Year, y = utility, colour = Category, group = interaction(Group, Category))) +
@@ -57,7 +57,7 @@ ggplot(hscnbf, aes(x = Year, y = aliveatanytime, colour = Category, group = inte
   geom_line() +
   labs(title = "Population Over Time - Selected Captive Animals, No Bees or Fish", y = "Population (alive at any time)", x = "Year") +
   theme_minimal()
-ggsave("first_pass/population_trends_f_nbf.pdf", width = 10, height = 6)
+ggsave("first_pass/population_trends/population_trends_f_nbf.pdf", width = 10, height = 6)
 
 # Plot 2: Utility over time
 ggplot(hscnbf, aes(x = Year, y = utility, colour = Category, group = interaction(Group, Category))) +

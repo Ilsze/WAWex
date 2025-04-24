@@ -1,13 +1,12 @@
-#This file conducts simple analysis of the time series from the calculations gsheet
+#This file conducts simple analysis produces correlations, elasticities, 
+#factor changes, and other summary variables from using calc_tseries from
+#prep_calc_tseries.R
+
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)  
 
-#read in time series
-calc_tseries <- read_excel("first_pass/calc_tseries.xlsx") %>% 
-  mutate(utility = aliveatanytime*Welfare_potential*Welfare_level)
-#save utility to file
-write.xlsx(calc_tseries, "first_pass/calc_tseries.xlsx")
+calc_tseries <- read_excel("first_pass/calc_tseries.xlsx")
 
 #create net utility 
 # Step 1: Get min and max years for each Category

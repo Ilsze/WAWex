@@ -139,13 +139,8 @@ ensure_nc_columns <- function(data) {
       human_fneurons <- data %>%
         filter(Category == "Humans") %>%
         pull(forebrain_neurons) %>%
-        unique()
-      
-      if(length(human_fneurons) == 0) {
-        # Fallback value if not in data
-        human_fneurons <- 24560000000
-        warning("Human forebrain neuron count not found in data. Using default value.")
-      }
+        unique() %>%
+        .[1]  # Use just the first value
       
       # Calculate NC columns
       data <- data %>%

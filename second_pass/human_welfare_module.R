@@ -32,6 +32,9 @@ calculate_human_welfare_levels <- function(data_path,
   cat("Loading World Bank data...\n")
   wb_data <- read_excel(data_path)
   
+  # Define human forebrain neuron count - add this constant
+  human_forebrain_neurons <- 24560000000
+  
   # Calculate welfare levels based on method
   if(method == "isoelastic") {
     # Isoelastic utility method parameters
@@ -41,16 +44,20 @@ calculate_human_welfare_levels <- function(data_path,
     
     # Calculate welfare scores
     human_WL <- wb_data %>% 
-      mutate(welfare_level = ubar + (GDP_filled^(1-gamma))/(1-gamma))
+      mutate(
+        welfare_level = ubar + (GDP_filled^(1-gamma))/(1-gamma),
+        forebrain_neurons = human_forebrain_neurons  # Add forebrain neurons here
+      )
     
     # Aggregate to global level
     human_welfare_results <- human_WL %>% 
-      select(Year, Country, Population, welfare_level) %>% 
+      select(Year, Country, Population, welfare_level, forebrain_neurons) %>%  # Include forebrain_neurons
       group_by(Year) %>% 
       summarise(
         Avg_welfare_per_capita = sum(welfare_level * Population, na.rm = TRUE) / sum(Population, na.rm = TRUE),
         Total_population = sum(Population, na.rm = TRUE),
         Total_welfare = sum(welfare_level * Population, na.rm = TRUE),
+        forebrain_neurons = first(forebrain_neurons),  # Keep forebrain_neurons in aggregation
         .groups = "drop"
       )
     
@@ -71,8 +78,11 @@ calculate_human_welfare_levels <- function(data_path,
     
     # Create welfare data with 32-82 classification
     welfare_data <- wb_data %>%
-      mutate(welfare_points = ifelse(GDP_filled <= threshold, 32, 82)) %>%
-      mutate(country_welfare = Population * welfare_points)
+      mutate(
+        welfare_points = ifelse(GDP_filled <= threshold, 32, 82),
+        country_welfare = Population * welfare_points,
+        forebrain_neurons = human_forebrain_neurons  # Add forebrain neurons here
+      )
     
     # Aggregate by year
     human_welfare_results <- welfare_data %>%
@@ -81,6 +91,7 @@ calculate_human_welfare_levels <- function(data_path,
         Total_welfare = sum(country_welfare, na.rm = TRUE),
         Total_population = sum(Population, na.rm = TRUE),
         Avg_welfare_per_capita = Total_welfare / Total_population,
+        forebrain_neurons = first(forebrain_neurons),  # Keep forebrain_neurons in aggregation
         .groups = "drop"
       )
     
@@ -189,8 +200,9 @@ prepare_human_data_for_integration <- function(human_welfare_data, output_file =
       Welfare_level = Avg_welfare_per_capita,
       WR_potential = 1,  # Humans are the reference with potential = 1
       NC_potential = 1   # Humans are the reference with potential = 1
+      # forebrain_neurons already included from human_welfare_data
     ) %>%
-    select(Year, Category, Group, aliveatanytime, Welfare_level, WR_potential, NC_potential)
+    select(Year, Category, Group, aliveatanytime, Welfare_level, WR_potential, NC_potential, forebrain_neurons)
   
   # Save to file if specified
   if(!is.null(output_file)) {

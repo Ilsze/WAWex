@@ -18,12 +18,23 @@ source("second_pass/human_welfare_module.R")  # Human welfare calculations
 #' @param output_base_dir Base directory for outputs
 #' @param create_visualizations Whether to create visualizations
 #' @return List of results from the analysis
+#' Run the complete welfare analysis pipeline
+#'
+#' @param human_data_path Path to the World Bank human data
+#' @param animal_data_path Path to the raw animal data
+#' @param welfare_level_method Method for welfare level calculation ("isoelastic" or "3282")
+#' @param welfare_potential_method Method for welfare potential calculation ("NC" or "WR")
+#' @param output_base_dir Base directory for outputs
+#' @param create_visualizations Whether to create visualizations
+#' @param skip_population_plots Whether to skip population trend visualizations
+#' @return List of results from the analysis
 run_complete_welfare_analysis <- function(human_data_path,
                                           animal_data_path,
                                           welfare_level_method = "isoelastic",
                                           welfare_potential_method = "WR",
                                           output_base_dir = "welfare_analysis_results",
-                                          create_visualizations = TRUE) {
+                                          create_visualizations = TRUE,
+                                          skip_population_plots = FALSE) {
   
   # Create method-specific output directory
   output_dir <- file.path(output_base_dir, paste0(welfare_level_method, "_", welfare_potential_method))
@@ -97,7 +108,8 @@ run_complete_welfare_analysis <- function(human_data_path,
     welfare_level_method = welfare_level_method,
     welfare_potential_method = welfare_potential_method,
     output_dir = file.path(output_dir, "analysis_results"),
-    create_visualizations = create_visualizations
+    create_visualizations = create_visualizations,
+    skip_population_plots = skip_population_plots
   )
   
   cat("\nComplete welfare analysis pipeline completed successfully!\n")
@@ -115,11 +127,87 @@ run_complete_welfare_analysis <- function(human_data_path,
 #' @param output_base_dir Base directory for outputs
 #' @param create_visualizations Whether to create visualizations
 #' @return List of results from all analyses
+#' Run all method combinations in a single function
+#'
+#' @param human_data_path Path to the World Bank human data
+#' @param animal_data_path Path to the raw animal data
+#' @param output_base_dir Base directory for outputs
+#' @param create_visualizations Whether to create visualizations
+#' @return List of results from all analyses
 run_all_welfare_method_combinations <- function(human_data_path,
                                                 animal_data_path,
                                                 output_base_dir = "welfare_analysis_results",
                                                 create_visualizations = TRUE) {
   
+  # Create population trends directory at the upper level
+  pop_trends_dir <- file.path(output_base_dir, "population_trends")
+  if(!dir.exists(pop_trends_dir)) {
+    dir.create(pop_trends_dir, recursive = TRUE)
+  }
+  
+  # First, create the population trend visualizations that are independent of method
+  # Read the raw animal data to create population visualizations
+  cat("Creating population trend visualizations at the top level...\n")
+  animal_data <- read_excel(animal_data_path)
+  
+  # Filter out rows with NA values for population
+  filtered_data <- animal_data %>%
+    filter(!is.na(aliveatanytime))
+  
+  # Plot 1: All population trends
+  p1 <- ggplot(filtered_data, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends.pdf"), 
+         plot = p1, width = 10, height = 6)
+  
+  # Plot 2: No bees
+  filtered_nb <- filtered_data %>% 
+    filter(Category != "Bees")
+  
+  p2 <- ggplot(filtered_nb, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (No Bees)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_nb.pdf"), 
+         plot = p2, width = 10, height = 6)
+  
+  # Plot 3: No bees, no fish
+  filtered_nbf <- filtered_nb %>% 
+    filter(Category != "Fish for Slaughter" & Category != "Fish")
+  
+  p3 <- ggplot(filtered_nbf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (No Bees, No Fish)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_nbf.pdf"), 
+         plot = p3, width = 10, height = 6)
+  
+  # Plot 4: No bees, no fish, no chickens
+  filtered_nbfc <- filtered_nbf %>% 
+    filter(Category != "Chickens")
+  
+  p4 <- ggplot(filtered_nbfc, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (No Bees, No Fish, No Chickens)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_nbfc.pdf"), 
+         plot = p4, width = 10, height = 6)
+  
+  # Now run the analyses for all method combinations
   welfare_level_methods <- c("isoelastic", "3282")
   welfare_potential_methods <- c("WR", "NC")
   
@@ -139,7 +227,8 @@ run_all_welfare_method_combinations <- function(human_data_path,
         welfare_level_method = wl_method,
         welfare_potential_method = wp_method,
         output_base_dir = output_base_dir,
-        create_visualizations = create_visualizations
+        create_visualizations = create_visualizations,
+        skip_population_plots = TRUE  # Skip population plots as we've already created them
       )
       
       # Store results

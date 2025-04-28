@@ -14,11 +14,21 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
 #' @param output_dir Directory for output files
 #' @param create_visualizations Whether to create visualizations
 #' @return List of calculated results
+#' Main function to process and analyze welfare time series data
+#' 
+#' @param data_path Path to the input time series data
+#' @param welfare_level_method Method for welfare level quantification ("isoelastic" or "3282")
+#' @param welfare_potential_method Method for welfare potential ("NC" or "WR")
+#' @param output_dir Directory for output files
+#' @param create_visualizations Whether to create visualizations
+#' @param skip_population_plots Whether to skip population trend visualizations
+#' @return List of calculated results
 analyze_welfare_data <- function(data_path, 
                                  welfare_level_method = "isoelastic",
                                  welfare_potential_method = "WR",
                                  output_dir = "welfare_analysis_results",
-                                 create_visualizations = TRUE) {
+                                 create_visualizations = TRUE,
+                                 skip_population_plots = FALSE) {
   
   # Create output directory if it doesn't exist
   if(!dir.exists(output_dir)) {
@@ -94,11 +104,12 @@ analyze_welfare_data <- function(data_path,
       dir.create(vis_dir, recursive = TRUE)
     }
     
-    create_visualizations(calc_tseries, net_series, net_series_nh, 
-                          utility_col = utility_col, 
-                          pop_col = pop_col,
-                          method_name = welfare_potential_method,
-                          output_dir = vis_dir)
+    create_utility_visualizations(calc_tseries, net_series, net_series_nh, 
+                                  utility_col = utility_col, 
+                                  pop_col = pop_col,
+                                  method_name = welfare_potential_method,
+                                  output_dir = vis_dir,
+                                  skip_population_plots = skip_population_plots)
   }
   
   # 9. Save results
@@ -110,7 +121,7 @@ analyze_welfare_data <- function(data_path,
   write.xlsx(cor_and_elasticity, file.path(output_dir, paste0("cor_and_elas", method_suffix, ".xlsx")))
   write.xlsx(f_change, file.path(output_dir, paste0("f_change", method_suffix, ".xlsx")))
   
-  # 10. Return results as a list
+  # 10. Return results
   cat("Analysis complete!\n")
   return(list(
     calc_tseries = calc_tseries,
@@ -617,6 +628,162 @@ create_visualizations <- function(data,
            plot = p7, width = 10, height = 6)
     
     # Plot 8: Utility over time (no humans, no fish, no chickens)
+    p8 <- ggplot(filtered_nhfc, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+      geom_line() +
+      labs(title = paste("Utility Over Time -", method_name, "Method (No Humans, No Fish, No Chickens)"), 
+           y = "Utility", 
+           x = "Year") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), "_nhfc.pdf")), 
+           plot = p8, width = 10, height = 6)
+  }
+  
+  # Net utility plots - these remain the same for both methods
+  # Plot: Net utility over time
+  p_net <- ggplot(net_series, aes(x = Year, y = net_utility)) +
+    geom_line(na.rm = FALSE) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = paste("Net Utility Over Time -", method_name, "Method"), 
+         y = "Net Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, paste0("net_utility_trends_", tolower(method_name), ".pdf")), 
+         plot = p_net, width = 10, height = 6)
+  
+  # Plot: Net utility comparison (with and without humans)
+  # Add labels to each dataset
+  net_series_labeled <- net_series %>% mutate(Group = "With Humans")
+  net_series_nh_labeled <- net_series_nh %>% mutate(Group = "Without Humans")
+  
+  # Combine the two datasets
+  combined_series <- bind_rows(net_series_labeled, net_series_nh_labeled)
+  
+  p_comp <- ggplot(combined_series, aes(x = Year, y = net_utility, color = Group)) +
+    geom_line(na.rm = FALSE) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = paste("Net Utility Comparison -", method_name, "Method"), 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, paste0("net_utility_comparison_", tolower(method_name), ".pdf")), 
+         plot = p_comp, width = 10, height = 6)
+}
+
+#' Create standard set of utility visualizations
+#' 
+#' @param data The processed dataset
+#' @param net_series The net series data
+#' @param net_series_nh The net series data without humans
+#' @param utility_col Column name for utility values
+#' @param pop_col Column name for population values
+#' @param method_name Method name for plot titles
+#' @param output_dir Directory for saving visualizations
+#' @param skip_population_plots Whether to skip population trend visualizations
+create_utility_visualizations <- function(data, 
+                                          net_series, 
+                                          net_series_nh,
+                                          utility_col = "WR_utility", 
+                                          pop_col = "WR_pop",
+                                          method_name = "WR",
+                                          output_dir = "visualizations",
+                                          skip_population_plots = FALSE) {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values
+  filtered_data <- data %>%
+    filter(!is.na(.data[[utility_col]]), !is.na(aliveatanytime))
+  
+  # Plot 1: Utility over time (all categories)
+  p2 <- ggplot(filtered_data, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = paste("Utility Over Time -", method_name, "Method"), 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), ".pdf")), 
+         plot = p2, width = 10, height = 6)
+  
+  # Apply different filtering logic based on the method
+  if(method_name == "WR") {
+    # For WR method: exclude bees, then exclude fish
+    
+    # Filtered dataset (no bees)
+    filtered_nb <- filtered_data %>% 
+      filter(Category != "Bees")
+    
+    # Filtered dataset (no bees, no fish)
+    filtered_nbf <- filtered_nb %>% 
+      filter(Category != "Fish for Slaughter" & Category != "Fish")
+    
+    # Plot: Utility over time (no bees)
+    p4 <- ggplot(filtered_nb, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+      geom_line() +
+      labs(title = paste("Utility Over Time -", method_name, "Method (No Bees)"), 
+           y = "Utility", 
+           x = "Year") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), "_nb.pdf")), 
+           plot = p4, width = 10, height = 6)
+    
+    # Plot: Utility over time (no bees, no fish)
+    p6 <- ggplot(filtered_nbf, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+      geom_line() +
+      labs(title = paste("Utility Over Time -", method_name, "Method (No Bees, No Fish)"), 
+           y = "Utility", 
+           x = "Year") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), "_nbf.pdf")), 
+           plot = p6, width = 10, height = 6)
+    
+  } else if(method_name == "NC") {
+    # For NC method: exclude humans, then exclude fish, then exclude chickens
+    
+    # Filtered dataset (no humans)
+    filtered_nh <- filtered_data %>% 
+      filter(Category != "Humans")
+    
+    # Filtered dataset (no humans, no fish)
+    filtered_nhf <- filtered_nh %>% 
+      filter(Category != "Fish for Slaughter" & Category != "Fish")
+    
+    # Filtered dataset (no humans, no fish, no chickens)
+    filtered_nhfc <- filtered_nhf %>% 
+      filter(Category != "Chickens")
+    
+    # Plot: Utility over time (no humans)
+    p4 <- ggplot(filtered_nh, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+      geom_line() +
+      labs(title = paste("Utility Over Time -", method_name, "Method (No Humans)"), 
+           y = "Utility", 
+           x = "Year") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), "_nh.pdf")), 
+           plot = p4, width = 10, height = 6)
+    
+    # Plot: Utility over time (no humans, no fish)
+    p6 <- ggplot(filtered_nhf, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
+      geom_line() +
+      labs(title = paste("Utility Over Time -", method_name, "Method (No Humans, No Fish)"), 
+           y = "Utility", 
+           x = "Year") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0("utility_trends_", tolower(method_name), "_nhf.pdf")), 
+           plot = p6, width = 10, height = 6)
+    
+    # Plot: Utility over time (no humans, no fish, no chickens)
     p8 <- ggplot(filtered_nhfc, aes(x = Year, y = .data[[utility_col]], colour = Category, group = interaction(Group, Category))) +
       geom_line() +
       labs(title = paste("Utility Over Time -", method_name, "Method (No Humans, No Fish, No Chickens)"), 

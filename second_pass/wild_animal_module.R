@@ -60,7 +60,36 @@ calculate_wild_bird_population <- function(bird_reference_count = 8.67E+10,
   return(bird_populations)
 }
 
-#' Generate wild animal welfare dataset with actual bird population data
+#' Calculate wild terrestrial mammal population using an exponential model
+#' 
+#' @param year_range The range of years to calculate population for
+#' @return DataFrame with years and wild terrestrial mammal population estimates
+calculate_wild_t_mammal_population <- function(year_range = 1950:2025) {
+  
+  # Define parameters for the exponential model
+  # y = 40e^(-0.004698(x-1900)) where x is Year and y is population in billions
+  base_value <- 40
+  decay_rate <- -0.004698
+  reference_year <- 1900
+  
+  # Calculate population for all years based on the exponential model
+  # Convert to raw numbers (not billions)
+  mammal_populations <- data.frame(
+    Year = year_range
+  ) %>%
+    mutate(
+      # Calculate population in billions based on exponential model
+      population_billions = base_value * exp(decay_rate * (Year - reference_year)),
+      
+      # Convert to raw numbers (multiplying by 1e9)
+      population = population_billions * 1e9
+    ) %>%
+    select(Year, population)  # Remove the intermediate column
+  
+  return(mammal_populations)
+}
+
+#' Generate wild animal welfare dataset with actual bird and mammal population data
 #' 
 #' @param output_file Optional path to save the generated dataset
 #' @param human_forebrain_neurons Number of neurons in human forebrains (for NC_potential calculation)
@@ -69,10 +98,10 @@ calculate_wild_bird_population <- function(bird_reference_count = 8.67E+10,
 #' @param bird_data_path Path to the bird loss data file
 #' @return Dataframe with wild animal welfare data
 generate_wild_animal_dataset <- function(output_file = NULL, 
-                                        human_forebrain_neurons = 24526000000,
-                                        bird_reference_count = 8.67E+10,
-                                        bird_reference_year = 2002,
-                                        bird_data_path = "dat/swb_bird_na.rds") {
+                                         human_forebrain_neurons = 24526000000,
+                                         bird_reference_count = 8.67E+10,
+                                         bird_reference_year = 2002,
+                                         bird_data_path = "dat/swb_bird_na.rds") {
   
   # Define the wild animal categories and their parameters
   wild_categories <- data.frame(
@@ -86,6 +115,12 @@ generate_wild_animal_dataset <- function(output_file = NULL,
   wild_categories <- wild_categories %>%
     mutate(NC_potential = forebrain_neurons / human_forebrain_neurons)
   
+  # Define year ranges for each category
+  # Wild birds: 1970-2017
+  # Others: 1950-2025
+  wild_birds_years <- 1970:2017
+  other_wild_years <- 1950:2025
+  
   # Calculate bird populations using actual data
   cat("Calculating wild bird populations using data from", bird_data_path, "...\n")
   bird_populations <- try(calculate_wild_bird_population(
@@ -94,45 +129,64 @@ generate_wild_animal_dataset <- function(output_file = NULL,
     bird_data_path = bird_data_path
   ), silent = TRUE)
   
-  # Check if bird population calculation was successful
-  if(inherits(bird_populations, "try-error")) {
-    cat("Warning: Failed to load bird population data. Using placeholder values instead.\n")
-    cat("Error: ", attr(bird_populations, "condition")$message, "\n")
-    use_bird_data <- FALSE
+  # Verify reference year value
+  if(bird_reference_year %in% bird_populations$Year) {
+    ref_year_pop <- bird_populations$population[bird_populations$Year == bird_reference_year]
+    if(abs(ref_year_pop - bird_reference_count)/bird_reference_count > 0.001) {
+      stop("Reference year ", bird_reference_year, " wild bird population (", 
+           format(ref_year_pop, scientific = TRUE), ") doesn't match expected value (", 
+           format(bird_reference_count, scientific = TRUE), ").")
+    } else {
+      cat("Verified: Reference year", bird_reference_year, "wild bird population matches expected value.\n")
+    }
   } else {
-    use_bird_data <- TRUE
+    stop("Reference year ", bird_reference_year, " not found in bird data.")
   }
   
-  # Define year ranges for each category
-  # Wild birds: 1970-2017
-  # Others: 1950-2025
-  wild_birds_years <- 1970:2017
-  other_wild_years <- 1950:2025
+  # Calculate mammal populations using the exponential model
+  cat("Calculating wild terrestrial mammal populations using exponential model...\n")
+  mammal_populations <- calculate_wild_t_mammal_population(year_range = 1950:2025)
   
-  # Create dataframes for each category with their respective years
-  wild_birds_df <- expand.grid(
+  # Define year ranges for each category
+  wild_birds_years <- min(bird_populations$Year):max(bird_populations$Year)
+  
+  # Create dataframes for each category with their respective years and populations
+  # For birds: use the actual bird population data
+  wild_birds_df <- data.frame(
     Year = wild_birds_years,
     Category = "Wild birds",
     stringsAsFactors = FALSE
-  )
+  ) %>% 
+    left_join(bird_populations, by = "Year") %>%
+    rename(aliveatanytime = population)
   
-  wild_mammals_df <- expand.grid(
+  # Remove extra columns from bird data
+  wild_birds_df <- wild_birds_df %>%
+    select(-Loss_med, -loss_diff_from_ref)
+  
+  # For mammals: use the exponential model data
+  wild_mammals_df <- data.frame(
     Year = other_wild_years,
     Category = "Wild terrestrial mammals",
     stringsAsFactors = FALSE
-  )
+  ) %>%
+    left_join(mammal_populations, by = "Year") %>%
+    rename(aliveatanytime = population)
   
-  wild_fish_df <- expand.grid(
+  # For fish and arthropods: use the formula-based populations
+  wild_fish_df <- data.frame(
     Year = other_wild_years,
     Category = "Wild fish",
     stringsAsFactors = FALSE
-  )
+  ) %>%
+    mutate(aliveatanytime = 2e13 - (Year - 1950) * 1e10)
   
-  wild_arthropods_df <- expand.grid(
+  wild_arthropods_df <- data.frame(
     Year = other_wild_years,
     Category = "Wild terrestrial arthropods",
     stringsAsFactors = FALSE
-  )
+  ) %>%
+    mutate(aliveatanytime = 1e19 + (Year - 1950) * 1e16)
   
   # Combine all dataframes
   wild_animals_df <- bind_rows(
@@ -149,45 +203,10 @@ generate_wild_animal_dataset <- function(output_file = NULL,
   wild_animals_df <- wild_animals_df %>%
     left_join(wild_categories, by = "Category")
   
-  # Set seed for reproducibility
-  set.seed(123)
-  
-  # Use actual bird population data if available
-  if(use_bird_data) {
-    # Merge bird population data with wild_animals_df
-    wild_animals_df <- wild_animals_df %>%
-      left_join(
-        bird_populations %>% select(Year, population),
-        by = "Year"
-      )
-    
-    # Update aliveatanytime with actual population data for birds
-    wild_animals_df <- wild_animals_df %>%
-      mutate(aliveatanytime = case_when(
-        Category == "Wild birds" & !is.na(population) ~ population,
-        Category == "Wild terrestrial mammals" ~ 1e11 + (Year - 1950) * 1e8,
-        Category == "Wild fish" ~ 2e13 - (Year - 1950) * 1e10,
-        Category == "Wild terrestrial arthropods" ~ 1e19 + (Year - 1950) * 1e16,
-        TRUE ~ NA_real_  # For any other cases
-      )) %>%
-      select(-population)  # Remove the temporary population column
-  } else {
-    # Use placeholder values if bird data is not available
-    wild_animals_df <- wild_animals_df %>%
-      mutate(aliveatanytime = case_when(
-        Category == "Wild birds" ~ 4e11 - (Year - 1970) * 2.5e9,
-        Category == "Wild terrestrial mammals" ~ 1e11 + (Year - 1950) * 1e8,
-        Category == "Wild fish" ~ 2e13 - (Year - 1950) * 1e10,
-        Category == "Wild terrestrial arthropods" ~ 1e19 + (Year - 1950) * 1e16
-      ))
-  }
-  
-  # Calculate utility metrics (without WR_pop and NC_pop as requested)
+  # Calculate utility metrics
   wild_animals_df <- wild_animals_df %>%
     mutate(
-      # WR_pop = aliveatanytime * WR_potential,  # Commented out as requested
       WR_utility = aliveatanytime * WR_potential * Welfare_level,
-      # NC_pop = aliveatanytime * NC_potential,  # Commented out as requested
       NC_utility = aliveatanytime * NC_potential * Welfare_level
     )
   
@@ -319,12 +338,13 @@ ensure_nc_columns <- function(data) {
 # Example usage:
 # Generate wild animal dataset
 wild_animals <- generate_wild_animal_dataset(
-  output_file = "second_pass/wild_animals_calc_tseries.xlsx"
+  output_file = "second_pass/wild_calc_tseries.xlsx"
 )
+wild_calc_tseries <- read_excel("second_pass/wild_calc_tseries.xlsx")
 # 
 # # Integrate with existing calc_tseries
 # # First load existing data
-# calc_tseries <- read_excel("first_pass/calc_tseries.xlsx")
+#calc_tseries <- read_excel("first_pass/calc_tseries.xlsx")
 # 
 # # Then integrate
 # integrated_data <- integrate_wild_animal_data(

@@ -62,7 +62,7 @@ calculate_human_welfare_levels <- function(data_path,
       )
     
   } else if(method == "3282") {
-    # 32-82 threshold method
+    # 32-82 method
     cat("Calculating welfare levels using 32-82 method...\n")
     
     #Get average world GDP pc
@@ -135,54 +135,6 @@ calculate_human_welfare_levels <- function(data_path,
     
     ggsave(file.path(vis_dir, paste0("total_human_welfare_", method, ".pdf")),
            plot = p2, width = 10, height = 6)
-    
-    # If using 32-82 method, also create GDP distribution visualization
-    if(method == "3282") {
-      # Get relevant years for visualization
-      years_to_plot <- c(1990, 2000, 2010, 2018)
-      years_to_plot <- years_to_plot[years_to_plot %in% unique(wb_data$Year)]
-      
-      for(year in years_to_plot) {
-        # Filter data for year
-        year_data <- wb_data %>% filter(Year == year)
-        
-        # Calculate probability mass on each side of threshold
-        below_threshold <- sum(year_data$GDP_filled < threshold, na.rm = TRUE)
-        above_threshold <- sum(year_data$GDP_filled >= threshold, na.rm = TRUE)
-        total_countries <- nrow(year_data)
-        
-        below_percent <- below_threshold / total_countries * 100
-        above_percent <- above_threshold / total_countries * 100
-        
-        # Calculate histogram for y-scaling
-        hist_data <- hist(year_data$GDP_filled, breaks = 30, plot = FALSE)
-        max_count <- max(hist_data$counts)
-        
-        # Create histogram plot
-        p_hist <- ggplot(year_data, aes(x = GDP_filled)) +
-          geom_histogram(bins = 30, fill = "steelblue", color = "white", alpha = 0.7) +
-          geom_vline(xintercept = threshold, color = "red", linetype = "dashed", size = 1) +
-          annotate("text", x = threshold*1.1, y = max_count*0.9, 
-                   label = paste("Threshold =", round(threshold, 2)), 
-                   color = "red", hjust = 0) +
-          # Add probability mass labels
-          annotate("label", x = threshold/3, y = max_count*0.8, 
-                   label = paste0(round(below_percent, 1), "% of countries\n(", below_threshold, " countries)"), 
-                   color = "darkblue", alpha = 0.8) +
-          annotate("label", x = threshold*5, y = max_count*0.8, 
-                   label = paste0(round(above_percent, 1), "% of countries\n(", above_threshold, " countries)"), 
-                   color = "darkblue", alpha = 0.8) +
-          scale_x_log10(labels = scales::comma) +
-          labs(title = paste("Distribution of GDP per Capita (", year, ")", sep = ""),
-               subtitle = paste("Log midpoint threshold:", round(threshold, 2)),
-               x = "GDP per Capita (log scale)",
-               y = "Count of Countries") +
-          theme_minimal()
-        
-        ggsave(file.path(vis_dir, paste0("distribution_GDP_per_capita_", year, ".pdf")),
-               plot = p_hist, width = 10, height = 6)
-      }
-    }
   }
   
   # Save results to file

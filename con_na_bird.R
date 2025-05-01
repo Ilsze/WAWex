@@ -1,5 +1,6 @@
 # This file plots north american bird utility against human growth, population,
-# and utility. Utility is derived from consumption-based measures
+# and utility. Utility is derived from consumption-based measures.
+#con stands for "consumption", representing the consumption approach
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, foreign, broom, knitr, data.table) 

@@ -65,7 +65,16 @@ calculate_human_welfare_levels <- function(data_path,
     # 32-82 threshold method
     cat("Calculating welfare levels using 32-82 method...\n")
     
-    # Calculate threshold as log midpoint between India and Canada GDP
+    #Get average world GDP pc
+    wb_world <- wb_data %>% 
+      group_by(Year) %>% 
+      summarise(
+        Weighted_Avg_GDP = sum(GDP_filled * Population, na.rm = TRUE) / sum(Population, na.rm = TRUE),
+        Total_Population = sum(Population, na.rm = TRUE)
+      ) %>% 
+      ungroup()
+    
+    # get India and Canada GDP
     india_2018_GDP <- wb_data %>%
       filter(Country == "India", Year == 2018) %>%
       pull(GDP_filled)
@@ -74,12 +83,13 @@ calculate_human_welfare_levels <- function(data_path,
       filter(Country == "Canada", Year == 2018) %>% 
       pull(GDP_filled)
     
-    threshold <- exp((log(india_2018_GDP) + log(canada_2018_GDP)) / 2)
+    # Find general formula
+    slope <- (82 - 32) / (canada_2018_GDP - india_2018_GDP)
     
     # Create welfare data with 32-82 classification
     welfare_data <- wb_data %>%
       mutate(
-        welfare_points = ifelse(GDP_filled <= threshold, 32, 82),
+        welfare_points = 32 + slope * (GDP_filled - india_2018_GDP),
         country_welfare = Population * welfare_points,
         forebrain_neurons = human_forebrain_neurons  # Add forebrain neurons here
       )

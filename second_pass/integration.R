@@ -111,15 +111,13 @@ run_complete_welfare_analysis <- function(human_data_path,
   integrated_data_path <- file.path(output_dir, "integrated_calc_tseries.xlsx") 
   write.xlsx(integrated_data, integrated_data_path)
   
-  # Step 6: Run analysis on integrated data
+  # Step 6: Run analysis on integrated data (CHANGE THIS PART)
   cat("Step 6: Running welfare analysis on integrated data...\n")
   analysis_results <- analyze_welfare_data(
     data_path = integrated_data_path,
     welfare_level_method = welfare_level_method,
-    welfare_potential_method = welfare_potential_method,
     output_dir = file.path(output_dir, "analysis_results"),
-    create_visualizations = create_visualizations,
-    skip_population_plots = skip_population_plots
+    create_visualizations = create_visualizations
   )
   
   cat("\nComplete welfare analysis pipeline completed successfully!\n")

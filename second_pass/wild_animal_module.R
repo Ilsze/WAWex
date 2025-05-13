@@ -4,7 +4,7 @@
 
 library(pacman)
 p_load(tidyverse, dplyr, ggplot2, gridExtra, mgcv, nleqslv, png, readr, tidyselect, 
-       stringr, readxl, openxlsx, foreign, broom, knitr, data.table)
+       stringr, readxl, openxlsx, foreign, broom, knitr, data.table, icesDatras)
 
 #' Calculate wild bird population using North American bird loss data
 #' 
@@ -89,9 +89,10 @@ calculate_wild_t_mammal_population <- function(year_range = 1950:2025) {
   return(mammal_populations)
 }
 
+
 #' Generate wild animal welfare dataset with actual bird and mammal population data
 #' 
-#' @param output_file Optional path to save the generated dataset
+#' @param output_file Optional path to save the generated dataset, e.g "second_pass/wild_animals_calc_tseries.xlsx"
 #' @param human_forebrain_neurons Number of neurons in human forebrains (for NC_potential calculation)
 #' @param bird_reference_count The reference count of wild birds
 #' @param bird_reference_year The reference year for bird count
@@ -101,7 +102,9 @@ generate_wild_animal_dataset <- function(output_file = NULL,
                                          human_forebrain_neurons = 24526000000,
                                          bird_reference_count = 8.67E+10,
                                          bird_reference_year = 2002,
-                                         bird_data_path = "dat/swb_bird_na.rds") {
+                                         bird_data_path = "dat/swb_bird_na.rds",
+                                         fish_reference_count = 6.19825e14,
+                                         t_arthropod_reference_count = 1e19) {
   
   # Define the wild animal categories and their parameters
   wild_categories <- data.frame(
@@ -179,14 +182,14 @@ generate_wild_animal_dataset <- function(output_file = NULL,
     Category = "Wild fish",
     stringsAsFactors = FALSE
   ) %>%
-    mutate(aliveatanytime = 2e13 - (Year - 1950) * 1e10)
+    mutate(aliveatanytime = fish_reference_count)
   
   wild_arthropods_df <- data.frame(
     Year = other_wild_years,
     Category = "Wild terrestrial arthropods",
     stringsAsFactors = FALSE
   ) %>%
-    mutate(aliveatanytime = 1e19 + (Year - 1950) * 1e16)
+    mutate(aliveatanytime = t_arthropod_reference_count)
   
   # Combine all dataframes
   wild_animals_df <- bind_rows(
@@ -202,13 +205,6 @@ generate_wild_animal_dataset <- function(output_file = NULL,
   # Join with the categories dataframe to add the parameter values
   wild_animals_df <- wild_animals_df %>%
     left_join(wild_categories, by = "Category")
-  
-  # Calculate utility metrics
-  wild_animals_df <- wild_animals_df %>%
-    mutate(
-      WR_utility = aliveatanytime * WR_potential * Welfare_level,
-      NC_utility = aliveatanytime * NC_potential * Welfare_level
-    )
   
   # Save to file if specified
   if(!is.null(output_file)) {
@@ -293,47 +289,6 @@ ensure_wr_columns <- function(data) {
   return(data)
 }
 
-#' Ensure the dataset has all required NC columns
-#' 
-#' @param data The dataset to check and modify
-#' @return Updated dataset with all NC columns
-ensure_nc_columns <- function(data) {
-  # Check if NC columns already exist
-  if(!("NC_utility" %in% colnames(data)) 
-     ##|| !("NC_pop" %in% colnames(data))
-     ) {
-    
-    # If not, calculate them based on available data
-    if("forebrain_neurons" %in% colnames(data) && 
-       "aliveatanytime" %in% colnames(data) && 
-       "Welfare_level" %in% colnames(data)) {
-      
-      # Get human forebrain neurons for relative scaling
-      human_fneurons <- data %>%
-        filter(Category == "Humans") %>%
-        pull(forebrain_neurons) %>%
-        unique() %>%
-        .[1]  # Use just the first value
-      
-      # If no human data is present, use the default value
-      if(length(human_fneurons) == 0) {
-        human_fneurons <- 24526000000
-      }
-      
-      # Calculate NC columns
-      data <- data %>%
-        mutate(
-          NC_potential = forebrain_neurons / human_fneurons,
-          #NC_pop = aliveatanytime * NC_potential,
-          NC_utility = aliveatanytime * NC_potential * Welfare_level
-        )
-    } else {
-      stop("Required columns for NC calculations are missing.")
-    }
-  }
-  
-  return(data)
-}
 
 # Example usage:
 # Generate wild animal dataset

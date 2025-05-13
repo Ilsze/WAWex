@@ -1,3 +1,5 @@
+#The main biotime file. No LPD here
+
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv) #for csv and data manipulation
 source("./helper_prop_trend.R")

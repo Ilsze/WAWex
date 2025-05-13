@@ -1,0 +1,3 @@
+ID,min_year,max_year
+Pop1,1970,1979
+Pop2,1970,1979

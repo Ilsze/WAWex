@@ -25,7 +25,6 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
 #' @return List of calculated results
 analyze_welfare_data <- function(data_path, 
                                  welfare_level_method = "isoelastic",
-                                 welfare_potential_method = "WR",
                                  output_dir = "welfare_analysis_results",
                                  create_visualizations = TRUE,
                                  skip_population_plots = FALSE) {
@@ -52,45 +51,22 @@ analyze_welfare_data <- function(data_path,
     stop("Invalid welfare level method. Use 'isoelastic' or '3282'.")
   }
   
-  # 3. Process data based on welfare potential method
-  # This is the core of our implementation - selecting the appropriate columns
-  cat(paste("Processing with", welfare_potential_method, "welfare potential method...\n"))
-  
-  # Create utility and population columns based on the selected method
-  if(welfare_potential_method == "NC") {
-    # Use neuron count columns
-    calc_tseries <- ensure_nc_columns(calc_tseries)
-    utility_col <- "NC_utility"
-    pop_col <- "NC_pop"
-    potential_col <- "NC_potential"
-  } else if(welfare_potential_method == "WR") {
-    # Use welfare range columns
-    calc_tseries <- ensure_wr_columns(calc_tseries)
-    utility_col <- "WR_utility"
-    pop_col <- "WR_pop"
-    potential_col <- "WR_potential"
-  } else {
-    stop("Invalid welfare potential method. Use 'NC' or 'WR'.")
-  }
+  # 3. Calculate all welfare metrics (NC and WR)
+  cat("Processing both NC and WR welfare potential methods...\n")
+  calc_tseries <- ensure_nc_columns(calc_tseries)
+  calc_tseries <- ensure_wr_columns(calc_tseries)
   
   # 4. Calculate net series
   cat("Calculating net series...\n")
-  net_series <- calculate_net_series(calc_tseries, 
-                                     utility_col = utility_col, 
-                                     pop_col = pop_col)
+  net_series <- calculate_net_series(calc_tseries)
   
-  # 5. Calculate net series without humans
-  cat("Calculating net series without humans...\n")
-  net_series_nh <- calculate_net_series_no_humans(calc_tseries, 
-                                                  utility_col = utility_col, 
-                                                  pop_col = pop_col)
+  # 5. Calculate net NC series without humans
+  cat("Calculating net NC series without humans...\n")
+  net_NC_series_nh <- calculate_net_NC_series_no_humans(calc_tseries)
   
   # 6. Calculate correlations and elasticities
   cat("Calculating correlations and elasticities...\n")
-  cor_and_elasticity <- calculate_correlations_elasticities(calc_tseries, 
-                                                            utility_col = utility_col, 
-                                                            pop_col = pop_col,
-                                                            potential_col = potential_col)
+  cor_and_elasticity <- calculate_correlations_elasticities(calc_tseries)
   
   # 7. Calculate factor changes
   cat("Calculating factor changes...\n")
@@ -104,7 +80,7 @@ analyze_welfare_data <- function(data_path,
       dir.create(vis_dir, recursive = TRUE)
     }
     
-    create_utility_visualizations(calc_tseries, net_series, net_series_nh, 
+    create_utility_visualizations(calc_tseries, net_series, net_NC_series_nh, 
                                   utility_col = utility_col, 
                                   pop_col = pop_col,
                                   method_name = welfare_potential_method,
@@ -114,10 +90,10 @@ analyze_welfare_data <- function(data_path,
   
   # 9. Save results
   cat("Saving results...\n")
-  method_suffix <- paste0("_", tolower(welfare_level_method), "_", tolower(welfare_potential_method))
+  method_suffix <- paste0("_", tolower(welfare_level_method))
   
   write.xlsx(net_series, file.path(output_dir, paste0("net_series", method_suffix, ".xlsx")))
-  write.xlsx(net_series_nh, file.path(output_dir, paste0("net_series_nh", method_suffix, ".xlsx")))
+  write.xlsx(net_NC_series_nh, file.path(output_dir, paste0("net_NC_series_nh", method_suffix, ".xlsx")))
   write.xlsx(cor_and_elasticity, file.path(output_dir, paste0("cor_and_elas", method_suffix, ".xlsx")))
   write.xlsx(f_change, file.path(output_dir, paste0("f_change", method_suffix, ".xlsx")))
   
@@ -126,7 +102,7 @@ analyze_welfare_data <- function(data_path,
   return(list(
     calc_tseries = calc_tseries,
     net_series = net_series,
-    net_series_nh = net_series_nh,
+    net_NC_series_nh = net_NC_series_nh,
     cor_and_elasticity = cor_and_elasticity,
     f_change = f_change
   ))
@@ -139,7 +115,7 @@ analyze_welfare_data <- function(data_path,
 ensure_nc_columns <- function(data) {
   # Check if NC columns already exist
   if(!("NC_utility" %in% colnames(data)) || 
-     !("NC_pop" %in% colnames(data))) {
+     !("NC_tot" %in% colnames(data))) {
     
     # If not, calculate them based on available data
     if("forebrain_neurons" %in% colnames(data) && 
@@ -157,8 +133,8 @@ ensure_nc_columns <- function(data) {
       data <- data %>%
         mutate(
           NC_potential = forebrain_neurons / human_fneurons,
-          NC_pop = aliveatanytime * NC_potential,
-          NC_utility = aliveatanytime * NC_potential * Welfare_level
+          NC_utility = aliveatanytime * NC_potential * Welfare_level,
+          NC_tot = aliveatanytime * forebrain_neurons
         )
     } else {
       stop("Required columns for NC calculations are missing.")
@@ -174,8 +150,7 @@ ensure_nc_columns <- function(data) {
 #' @return Updated dataset with all WR columns
 ensure_wr_columns <- function(data) {
   # Check if WR columns already exist
-  if(!("WR_utility" %in% colnames(data)) || 
-     !("WR_pop" %in% colnames(data))) {
+  if(!("WR_utility" %in% colnames(data))) {
     
     # If not, calculate them based on available data
     if("WR_potential" %in% colnames(data) && 
@@ -185,7 +160,6 @@ ensure_wr_columns <- function(data) {
       # Calculate WR columns
       data <- data %>%
         mutate(
-          WR_pop = aliveatanytime * WR_potential,
           WR_utility = aliveatanytime * WR_potential * Welfare_level
         )
     } else {
@@ -196,15 +170,13 @@ ensure_wr_columns <- function(data) {
   return(data)
 }
 
+
+
 #' Calculate net series for all categories
 #' 
 #' @param data The input dataset
-#' @param utility_col Column name for utility values
-#' @param pop_col Column name for population values
 #' @return Dataframe with net series by year
-calculate_net_series <- function(data, 
-                                 utility_col = "WR_utility", 
-                                 pop_col = "WR_pop") {
+calculate_net_series <- function(data) {
   
   # Determine the common years across all categories
   year_bounds <- data %>%
@@ -229,8 +201,10 @@ calculate_net_series <- function(data,
   net_series <- data_global %>%
     group_by(Year) %>%
     summarize(
-      net_utility = sum(.data[[utility_col]], na.rm = FALSE),
-      net_pop = sum(.data[[pop_col]], na.rm = FALSE)
+      WR_utility = sum(WR_utility, na.rm = FALSE),  # Keep naming consistent with original columns
+      NC_utility = sum(NC_utility, na.rm = FALSE),
+      NC_tot = sum(NC_tot, na.rm = FALSE),
+      total_population = sum(aliveatanytime, na.rm = FALSE)
     )
   
   return(net_series)
@@ -239,12 +213,8 @@ calculate_net_series <- function(data,
 #' Calculate net series excluding humans
 #' 
 #' @param data The input dataset
-#' @param utility_col Column name for utility values
-#' @param pop_col Column name for population values
 #' @return Dataframe with net series (no humans) by year
-calculate_net_series_no_humans <- function(data, 
-                                           utility_col = "WR_utility", 
-                                           pop_col = "WR_pop") {
+calculate_net_NC_series_no_humans <- function(data) {
   
   # Filter out humans
   data_nh <- data %>% 
@@ -270,56 +240,59 @@ calculate_net_series_no_humans <- function(data,
            Year <= common_window_nh$end)
   
   # Compute net series
-  net_series_nh <- data_global_nh %>%
+  net_NC_series_nh <- data_global_nh %>%
     group_by(Year) %>%
     summarize(
-      net_utility = sum(.data[[utility_col]], na.rm = FALSE),
-      net_pop = sum(.data[[pop_col]], na.rm = FALSE)
+      NC_utility = sum(NC_utility, na.rm = FALSE),
+      NC_tot = sum(NC_tot, na.rm = FALSE)
     )
   
-  return(net_series_nh)
+  return(net_NC_series_nh)
 }
 
 #' Calculate correlations and elasticities between human and animal populations/utilities
+#' for both WR and NC methods in a single combined dataframe
 #' 
 #' @param data The input dataset
-#' @param utility_col Column name for utility values
-#' @param pop_col Column name for population values
-#' @param potential_col Column name for welfare potential values
-#' @return Dataframe with correlations and elasticities
-calculate_correlations_elasticities <- function(data, 
-                                                utility_col = "WR_utility", 
-                                                pop_col = "WR_pop",
-                                                potential_col = "WR_potential") {
+#' @return Dataframe with correlations and elasticities for both methods
+calculate_correlations_elasticities <- function(data) {
   
   # Get non-human categories
   nh_cat <- setdiff(unique(data$Category), "Humans")
   
-  # Get human vector with appropriate columns
-  human_vec <- data %>% 
-    filter(Category == "Humans") %>% 
-    select(Year, aliveatanytime, all_of(utility_col))
-  
   # Initialize results dataframe
   cor_and_elasticity <- data.frame(
     Category = character(), 
-    cor_pop = numeric(), 
-    cor_u = numeric(), 
-    cor_hpop_au = numeric(), 
-    cor_hu_apop = numeric(),
-    e_pop = numeric(), 
-    e_u = numeric(), 
-    e_hpop_au = numeric(), 
-    e_hu_apop = numeric(), 
+    WR_cor_pop = numeric(), 
+    WR_cor_u = numeric(), 
+    WR_cor_hpop_au = numeric(), 
+    WR_cor_hu_apop = numeric(),
+    WR_e_pop = numeric(), 
+    WR_e_u = numeric(), 
+    WR_e_hpop_au = numeric(), 
+    WR_e_hu_apop = numeric(),
+    NC_cor_pop = numeric(), 
+    NC_cor_u = numeric(), 
+    NC_cor_hpop_au = numeric(), 
+    NC_cor_hu_apop = numeric(),
+    NC_e_pop = numeric(), 
+    NC_e_u = numeric(), 
+    NC_e_hpop_au = numeric(), 
+    NC_e_hu_apop = numeric(),
     stringsAsFactors = FALSE
   )
+  
+  # Get human vectors with appropriate columns
+  human_vec <- data %>% 
+    filter(Category == "Humans") %>% 
+    select(Year, aliveatanytime, WR_utility, NC_utility)
   
   # Calculate correlations and elasticities for each non-human category
   for (category in nh_cat) {
     # Get category vector with appropriate columns
     cat_vec <- data %>% 
       filter(Category == category) %>% 
-      select(Year, aliveatanytime, all_of(utility_col))
+      select(Year, aliveatanytime, WR_utility, NC_utility)
     
     # Identify min and max year for the correlation
     min_year <- max(min(cat_vec$Year), min(human_vec$Year), na.rm = TRUE)
@@ -330,75 +303,130 @@ calculate_correlations_elasticities <- function(data,
       filter(Year >= min_year & Year <= max_year) %>%
       pull(aliveatanytime)
     
-    human_u_trunc <- human_vec %>%
+    human_wr_u_trunc <- human_vec %>%
       filter(Year >= min_year & Year <= max_year) %>%
-      pull(all_of(utility_col))
+      pull(WR_utility)
+    
+    human_nc_u_trunc <- human_vec %>%
+      filter(Year >= min_year & Year <= max_year) %>%
+      pull(NC_utility)
     
     cat_pop_trunc <- cat_vec %>%
       filter(Year >= min_year & Year <= max_year) %>%
       pull(aliveatanytime)
     
-    cat_u_trunc <- cat_vec %>%
+    cat_wr_u_trunc <- cat_vec %>%
       filter(Year >= min_year & Year <= max_year) %>%
-      pull(all_of(utility_col))
+      pull(WR_utility)
     
-    # Check if we have enough non-NA values to calculate correlations
+    cat_nc_u_trunc <- cat_vec %>%
+      filter(Year >= min_year & Year <= max_year) %>%
+      pull(NC_utility)
+    
+    # Check if we have enough non-NA values for population correlations
     has_valid_pop_data <- !all(is.na(human_pop_trunc)) && !all(is.na(cat_pop_trunc)) && 
       sum(!is.na(human_pop_trunc) & !is.na(cat_pop_trunc)) > 1
     
-    has_valid_utility_data <- !all(is.na(human_u_trunc)) && !all(is.na(cat_u_trunc)) && 
-      sum(!is.na(human_u_trunc) & !is.na(cat_u_trunc)) > 1
+    # Check for valid WR utility data
+    has_valid_wr_utility_data <- !all(is.na(human_wr_u_trunc)) && !all(is.na(cat_wr_u_trunc)) && 
+      sum(!is.na(human_wr_u_trunc) & !is.na(cat_wr_u_trunc)) > 1
     
-    # Run correlations with error handling
-    cor_pop <- if(has_valid_pop_data) {
+    # Check for valid NC utility data
+    has_valid_nc_utility_data <- !all(is.na(human_nc_u_trunc)) && !all(is.na(cat_nc_u_trunc)) && 
+      sum(!is.na(human_nc_u_trunc) & !is.na(cat_nc_u_trunc)) > 1
+    
+    # Calculate WR correlations
+    wr_cor_pop <- if(has_valid_pop_data) {
       tryCatch(cor(human_pop_trunc, cat_pop_trunc, use = "complete.obs"), error = function(e) NA)
     } else NA
     
-    cor_u <- if(has_valid_utility_data) {
-      tryCatch(cor(human_u_trunc, cat_u_trunc, use = "complete.obs"), error = function(e) NA)
+    wr_cor_u <- if(has_valid_wr_utility_data) {
+      tryCatch(cor(human_wr_u_trunc, cat_wr_u_trunc, use = "complete.obs"), error = function(e) NA)
     } else NA
     
-    cor_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_u_trunc)) && 
-                      sum(!is.na(human_pop_trunc) & !is.na(cat_u_trunc)) > 1) {
-      tryCatch(cor(human_pop_trunc, cat_u_trunc, use = "complete.obs"), error = function(e) NA)
+    wr_cor_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_wr_u_trunc)) && 
+                         sum(!is.na(human_pop_trunc) & !is.na(cat_wr_u_trunc)) > 1) {
+      tryCatch(cor(human_pop_trunc, cat_wr_u_trunc, use = "complete.obs"), error = function(e) NA)
     } else NA
     
-    cor_hu_apop <- if(!all(is.na(human_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
-                      sum(!is.na(human_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
-      tryCatch(cor(human_u_trunc, cat_pop_trunc, use = "complete.obs"), error = function(e) NA)
+    wr_cor_hu_apop <- if(!all(is.na(human_wr_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
+                         sum(!is.na(human_wr_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
+      tryCatch(cor(human_wr_u_trunc, cat_pop_trunc, use = "complete.obs"), error = function(e) NA)
     } else NA
     
-    # Run regressions for elasticities with error handling
-    e_pop <- if(has_valid_pop_data) {
+    # Calculate WR elasticities
+    wr_e_pop <- if(has_valid_pop_data) {
       tryCatch(coef(lm(cat_pop_trunc ~ human_pop_trunc))[2], error = function(e) NA)
     } else NA
     
-    e_u <- if(has_valid_utility_data) {
-      tryCatch(coef(lm(cat_u_trunc ~ human_u_trunc))[2], error = function(e) NA)
+    wr_e_u <- if(has_valid_wr_utility_data) {
+      tryCatch(coef(lm(cat_wr_u_trunc ~ human_wr_u_trunc))[2], error = function(e) NA)
     } else NA
     
-    e_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_u_trunc)) && 
-                    sum(!is.na(human_pop_trunc) & !is.na(cat_u_trunc)) > 1) {
-      tryCatch(coef(lm(cat_u_trunc ~ human_pop_trunc))[2], error = function(e) NA)
+    wr_e_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_wr_u_trunc)) && 
+                       sum(!is.na(human_pop_trunc) & !is.na(cat_wr_u_trunc)) > 1) {
+      tryCatch(coef(lm(cat_wr_u_trunc ~ human_pop_trunc))[2], error = function(e) NA)
     } else NA
     
-    e_hu_apop <- if(!all(is.na(human_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
-                    sum(!is.na(human_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
-      tryCatch(coef(lm(cat_pop_trunc ~ human_u_trunc))[2], error = function(e) NA)
+    wr_e_hu_apop <- if(!all(is.na(human_wr_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
+                       sum(!is.na(human_wr_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
+      tryCatch(coef(lm(cat_pop_trunc ~ human_wr_u_trunc))[2], error = function(e) NA)
+    } else NA
+    
+    # Calculate NC correlations
+    nc_cor_pop <- wr_cor_pop  # Same population correlation for both methods
+    
+    nc_cor_u <- if(has_valid_nc_utility_data) {
+      tryCatch(cor(human_nc_u_trunc, cat_nc_u_trunc, use = "complete.obs"), error = function(e) NA)
+    } else NA
+    
+    nc_cor_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_nc_u_trunc)) && 
+                         sum(!is.na(human_pop_trunc) & !is.na(cat_nc_u_trunc)) > 1) {
+      tryCatch(cor(human_pop_trunc, cat_nc_u_trunc, use = "complete.obs"), error = function(e) NA)
+    } else NA
+    
+    nc_cor_hu_apop <- if(!all(is.na(human_nc_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
+                         sum(!is.na(human_nc_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
+      tryCatch(cor(human_nc_u_trunc, cat_pop_trunc, use = "complete.obs"), error = function(e) NA)
+    } else NA
+    
+    # Calculate NC elasticities
+    nc_e_pop <- wr_e_pop  # Same population elasticity for both methods
+    
+    nc_e_u <- if(has_valid_nc_utility_data) {
+      tryCatch(coef(lm(cat_nc_u_trunc ~ human_nc_u_trunc))[2], error = function(e) NA)
+    } else NA
+    
+    nc_e_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(cat_nc_u_trunc)) && 
+                       sum(!is.na(human_pop_trunc) & !is.na(cat_nc_u_trunc)) > 1) {
+      tryCatch(coef(lm(cat_nc_u_trunc ~ human_pop_trunc))[2], error = function(e) NA)
+    } else NA
+    
+    nc_e_hu_apop <- if(!all(is.na(human_nc_u_trunc)) && !all(is.na(cat_pop_trunc)) && 
+                       sum(!is.na(human_nc_u_trunc) & !is.na(cat_pop_trunc)) > 1) {
+      tryCatch(coef(lm(cat_pop_trunc ~ human_nc_u_trunc))[2], error = function(e) NA)
     } else NA
     
     # Add results to result table
     cor_and_elasticity <- cor_and_elasticity %>% 
       add_row(
         Category = category, 
-        cor_pop = cor_pop, 
-        cor_u = cor_u, 
-        cor_hpop_au = cor_hpop_au, 
-        cor_hu_apop = cor_hu_apop,
-        e_pop = e_pop, 
-        e_u = e_u, 
-        e_hpop_au = e_hpop_au, 
-        e_hu_apop = e_hu_apop
+        WR_cor_pop = wr_cor_pop, 
+        WR_cor_u = wr_cor_u, 
+        WR_cor_hpop_au = wr_cor_hpop_au, 
+        WR_cor_hu_apop = wr_cor_hu_apop,
+        WR_e_pop = wr_e_pop, 
+        WR_e_u = wr_e_u, 
+        WR_e_hpop_au = wr_e_hpop_au, 
+        WR_e_hu_apop = wr_e_hu_apop,
+        NC_cor_pop = nc_cor_pop, 
+        NC_cor_u = nc_cor_u, 
+        NC_cor_hpop_au = nc_cor_hpop_au, 
+        NC_cor_hu_apop = nc_cor_hu_apop,
+        NC_e_pop = nc_e_pop, 
+        NC_e_u = nc_e_u, 
+        NC_e_hpop_au = nc_e_hpop_au, 
+        NC_e_hu_apop = nc_e_hu_apop
       )
   }
   
@@ -459,8 +487,7 @@ c#' Create standard set of visualizations
 create_visualizations <- function(data, 
                                   net_series, 
                                   net_series_nh,
-                                  utility_col = "WR_utility", 
-                                  pop_col = "WR_pop",
+                                  utility_col = "WR_utility",
                                   method_name = "WR",
                                   output_dir = "visualizations") {
   
@@ -686,8 +713,7 @@ create_visualizations <- function(data,
 create_utility_visualizations <- function(data, 
                                           net_series, 
                                           net_series_nh,
-                                          utility_col = "WR_utility", 
-                                          pop_col = "WR_pop",
+                                          utility_col = "WR_utility",
                                           method_name = "WR",
                                           output_dir = "visualizations",
                                           skip_population_plots = FALSE) {

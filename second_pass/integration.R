@@ -8,11 +8,12 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
 # Source required functions
 source("second_pass/welfare_analysis_framework.R")  # Main analysis functions
 source("second_pass/human_welfare_module.R")  # Human welfare calculations
+source("second_pass/wild_animal_module.R")  # Wild animal welfare calculations
 
 #' Run the complete welfare analysis pipeline
 #'
 #' @param human_data_path Path to the World Bank human data
-#' @param animal_data_path Path to the raw animal data
+#' @param farmed_animal_data_path Path to the raw animal data
 #' @param welfare_level_method Method for welfare level calculation ("isoelastic" or "3282")
 #' @param welfare_potential_method Method for welfare potential calculation ("NC" or "WR")
 #' @param output_base_dir Base directory for outputs
@@ -21,7 +22,7 @@ source("second_pass/human_welfare_module.R")  # Human welfare calculations
 #' Run the complete welfare analysis pipeline
 #'
 #' @param human_data_path Path to the World Bank human data
-#' @param animal_data_path Path to the raw animal data
+#' @param farmed_animal_data_path Path to the raw animal data
 #' @param welfare_level_method Method for welfare level calculation ("isoelastic" or "3282")
 #' @param welfare_potential_method Method for welfare potential calculation ("NC" or "WR")
 #' @param output_base_dir Base directory for outputs
@@ -29,7 +30,8 @@ source("second_pass/human_welfare_module.R")  # Human welfare calculations
 #' @param skip_population_plots Whether to skip population trend visualizations
 #' @return List of results from the analysis
 run_complete_welfare_analysis <- function(human_data_path,
-                                          animal_data_path,
+                                          farmed_animal_data_path,
+                                          wild_animal_data_path,
                                           welfare_level_method = "isoelastic",
                                           welfare_potential_method = "WR",
                                           output_base_dir = "welfare_analysis_results",
@@ -59,10 +61,12 @@ run_complete_welfare_analysis <- function(human_data_path,
     human_welfare_results,
     output_file = file.path(output_dir, "human_data_formatted.xlsx")
   )
-  
+  #note that wild animal data is already ready for integration
+
   # Step 3: Read and preprocess animal data
   cat("Step 3: Reading and preprocessing animal data...\n")
-  animal_data <- read_excel(animal_data_path)
+  farmed_animal_data <- read_excel(farmed_animal_data_path)
+  wild_animal_data <- read_excel(wild_animal_data_path)
   
   # Step 4: Integrate human and animal data
   cat("Step 4: Integrating human and animal data...\n")
@@ -70,7 +74,7 @@ run_complete_welfare_analysis <- function(human_data_path,
   # Extract needed columns from animal data
   # This assumes animal data has at least these columns: Year, Category, Group, aliveatanytime
   required_cols <- c("Year", "Category", "Group", "aliveatanytime")
-  animal_cols <- names(animal_data)
+  animal_cols <- names(farmed_animal_data)
   
   # Check if all required columns exist
   if(!all(required_cols %in% animal_cols)) {
@@ -78,16 +82,22 @@ run_complete_welfare_analysis <- function(human_data_path,
     stop("Missing required columns in animal data: ", paste(missing_cols, collapse = ", "))
   }
   
-  # Create integrated dataset
-  if("Humans" %in% animal_data$Category) {
+  # Integrate farmed animal data with human data
+  if("Humans" %in% farmed_animal_data$Group) {
     # If humans already in the dataset, replace with new welfare data
-    integrated_data <- animal_data %>%
-      filter(Category != "Humans") %>%
+    integrated_hf_data <- farmed_animal_data %>%
+      filter(Group != "Humans") %>%
       bind_rows(human_data_formatted)
   } else {
     # If no humans in the dataset, simply append
-    integrated_data <- bind_rows(animal_data, human_data_formatted)
+    integrated_hf_data <- bind_rows(farmed_animal_data, human_data_formatted)
   }
+  
+  #Integrate farmed animal and human data with wild animal data
+  integrated_data <- integrate_wild_animal_data(wild_data = wild_animal_data, 
+                                                calc_tseries = integrated_hf_data, 
+                                                output_file = "second_pass/integrated_calc_tseries.xlsx")
+  
   
   # Step 5: Ensure dataset has required potential and utility columns
   cat("Step 5: Calculating welfare potential and utility metrics...\n")
@@ -120,22 +130,18 @@ run_complete_welfare_analysis <- function(human_data_path,
   ))
 }
 
+
 #' Run all method combinations in a single function
 #'
 #' @param human_data_path Path to the World Bank human data
-#' @param animal_data_path Path to the raw animal data
-#' @param output_base_dir Base directory for outputs
-#' @param create_visualizations Whether to create visualizations
-#' @return List of results from all analyses
-#' Run all method combinations in a single function
-#'
-#' @param human_data_path Path to the World Bank human data
-#' @param animal_data_path Path to the raw animal data
+#' @param farmed_animal_data_path Path to the raw farmed animal data
+#' @param wild_animal_data_path Path to the raw wild animal data
 #' @param output_base_dir Base directory for outputs
 #' @param create_visualizations Whether to create visualizations
 #' @return List of results from all analyses
 run_all_welfare_method_combinations <- function(human_data_path,
-                                                animal_data_path,
+                                                farmed_animal_data_path,
+                                                wild_animal_data_path,
                                                 output_base_dir = "welfare_analysis_results",
                                                 create_visualizations = TRUE) {
   
@@ -148,10 +154,11 @@ run_all_welfare_method_combinations <- function(human_data_path,
   # First, create the population trend visualizations that are independent of method
   # Read the raw animal data to create population visualizations
   cat("Creating population trend visualizations at the top level...\n")
-  animal_data <- read_excel(animal_data_path)
+  farmed_animal_data <- read_excel(farmed_animal_data_path)
+  wild_animal_data <- read_excel(wild_animal_data_path)
   
   # Filter out rows with NA values for population
-  filtered_data <- animal_data %>%
+  filtered_data <- farmed_animal_data %>%
     filter(!is.na(aliveatanytime))
   
   # Plot 1: All population trends
@@ -223,7 +230,8 @@ run_all_welfare_method_combinations <- function(human_data_path,
       # Run complete analysis with this combination
       results <- run_complete_welfare_analysis(
         human_data_path = human_data_path,
-        animal_data_path = animal_data_path,
+        farmed_animal_data_path = farmed_animal_data_path,
+        wild_animal_data_path = wild_animal_data_path,
         welfare_level_method = wl_method,
         welfare_potential_method = wp_method,
         output_base_dir = output_base_dir,
@@ -245,7 +253,7 @@ run_all_welfare_method_combinations <- function(human_data_path,
 # # Run a single analysis combination
 # results_isoelastic_WR <- run_complete_welfare_analysis(
 #   human_data_path = "dat/world_bank/world_bank_pop_gdp_clean.xlsx",
-#   animal_data_path = "first_pass/calc_tseries.xlsx",
+#   farmed_animal_data_path = "first_pass/calc_tseries.xlsx",
 #   welfare_level_method = "isoelastic",
 #   welfare_potential_method = "WR",
 #   output_base_dir = "first_pass/welfare_results",
@@ -255,7 +263,7 @@ run_all_welfare_method_combinations <- function(human_data_path,
 # # Or run all combinations at once
 # all_results <- run_all_welfare_method_combinations(
 #   human_data_path = "dat/world_bank/world_bank_pop_gdp_clean.xlsx",
-#   animal_data_path = "first_pass/calc_tseries.xlsx",
+#   farmed_animal_data_path = "first_pass/calc_tseries.xlsx",
 #   output_base_dir = "first_pass/welfare_results",
 #   create_visualizations = TRUE
 # )

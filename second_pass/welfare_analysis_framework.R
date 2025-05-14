@@ -696,7 +696,110 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "NC_net_utility_comp_nw.pdf"), 
          plot = p_nc_comp_nw, width = 10, height = 6)
   
-  ########## WR UTILITY PLOTS THIRD ##########
+  ############ NC TOTAL PLOTS THIRD ###########
+  # Filter out rows with NA values for NC_tot
+  filtered_data_nc_tot <- data %>%
+    filter(!is.na(NC_tot), !is.na(aliveatanytime))
+  
+  # NC_tot over time - all categories
+  p_nc_tot <- ggplot(filtered_data_nc_tot, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Total Neurons Over Time by Category", 
+         y = "Total Neurons", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_tot_trends.pdf"), 
+         plot = p_nc_tot, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_nc_tot_n_wta_wfi <- filtered_data_nc_tot %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  p_nc_tot_n_wta_wfi <- ggplot(filtered_nc_tot_n_wta_wfi, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    # Add labels at the end of each line
+    geom_text(data = filtered_nc_tot_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(filtered_nc_tot_n_wta_wfi$Year), 
+                                  max(filtered_nc_tot_n_wta_wfi$Year) + 5)) +
+    labs(title = "Total Neurons Over Time (No wt. arthropods, No w. fish)", 
+         y = "Total Neurons", 
+         x = "Year") +
+    # Remove the legend since we have direct labels
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi.pdf"), 
+         plot = p_nc_tot_n_wta_wfi, width = 10, height = 6)
+  
+  
+  
+  
+  ######## NC TOT NET SERIES #########
+  # NC_net_tot comparison - With vs. Without Humans (1970-2017)
+  # Calculate net NC_tot without humans
+  net_nc_tot_nh_data <- filtered_data_nc_tot %>% 
+    filter(Category != "Humans", 
+           Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      NC_tot = sum(NC_tot, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Get with-humans data, limited to 1970-2017
+  humans_plus_animals_tot <- net_series %>%
+    filter(Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    select(Year, NC_tot) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_nc_tot_series <- bind_rows(
+    humans_plus_animals_tot,
+    net_nc_tot_nh_data
+  )
+  
+  # Create and save the plot
+  p_nc_tot_comp <- ggplot(combined_nc_tot_series, aes(x = Year, y = NC_tot, color = Group)) +
+    geom_line(size = 1) +
+    geom_text(data = combined_nc_tot_series %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, 
+                                  max_year_constraint + 2)) +
+    labs(title = "Net Total Neurons Comparison (With vs. Without Humans)", 
+         y = "Net Total Neurons", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none") +
+    xlim(min_year_constraint, max_year_constraint + 2)
+  
+  ggsave(file.path(output_dir, "NC_net_tot_trends.pdf"), 
+         plot = p_nc_tot_comp, width = 10, height = 6)
+  
+  
+  
+  
+  
+  
+  
+  ########## WR UTILITY PLOTS FOURTH ##########
   
   # Filter out rows with NA values for WR utility
   filtered_data_wr <- data %>%

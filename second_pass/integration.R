@@ -14,17 +14,9 @@ source("second_pass/wild_animal_module.R")  # Wild animal welfare calculations
 #'
 #' @param human_data_path Path to the World Bank human data
 #' @param farmed_animal_data_path Path to the raw animal data
+#' @param wild_animal_data_path Path to the raw wild animal data
 #' @param welfare_level_method Method for welfare level calculation ("isoelastic" or "3282")
-#' @param welfare_potential_method Method for welfare potential calculation ("NC" or "WR")
-#' @param output_base_dir Base directory for outputs
-#' @param create_visualizations Whether to create visualizations
-#' @return List of results from the analysis
-#' Run the complete welfare analysis pipeline
-#'
-#' @param human_data_path Path to the World Bank human data
-#' @param farmed_animal_data_path Path to the raw animal data
-#' @param welfare_level_method Method for welfare level calculation ("isoelastic" or "3282")
-#' @param welfare_potential_method Method for welfare potential calculation ("NC" or "WR")
+#' @param welfare_potential_method Method for welfare potential calculation (set to "ALL" for both NC and WR)
 #' @param output_base_dir Base directory for outputs
 #' @param create_visualizations Whether to create visualizations
 #' @param skip_population_plots Whether to skip population trend visualizations
@@ -33,13 +25,14 @@ run_complete_welfare_analysis <- function(human_data_path,
                                           farmed_animal_data_path,
                                           wild_animal_data_path,
                                           welfare_level_method = "isoelastic",
-                                          welfare_potential_method = "WR",
-                                          output_base_dir = "welfare_analysis_results",
+                                          welfare_potential_method = "ALL",
+                                          output_base_dir,  # No default - always passed from caller
                                           create_visualizations = TRUE,
                                           skip_population_plots = FALSE) {
   
   # Create method-specific output directory
-  output_dir <- file.path(output_base_dir, paste0(welfare_level_method, "_", welfare_potential_method))
+  # Modified to just use welfare_level_method since both NC and WR are calculated
+  output_dir <- file.path(output_base_dir, welfare_level_method)
   if(!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
@@ -61,8 +54,8 @@ run_complete_welfare_analysis <- function(human_data_path,
     human_welfare_results,
     output_file = file.path(output_dir, "human_data_formatted.xlsx")
   )
-  #note that wild animal data is already ready for integration
-
+  # Note that wild animal data is already ready for integration
+  
   # Step 3: Read and preprocess animal data
   cat("Step 3: Reading and preprocessing animal data...\n")
   farmed_animal_data <- read_excel(farmed_animal_data_path)
@@ -93,7 +86,7 @@ run_complete_welfare_analysis <- function(human_data_path,
     integrated_hf_data <- bind_rows(farmed_animal_data, human_data_formatted)
   }
   
-  #Integrate farmed animal and human data with wild animal data
+  # Integrate farmed animal and human data with wild animal data
   integrated_data <- integrate_wild_animal_data(wild_data = wild_animal_data, 
                                                 calc_tseries = integrated_hf_data, 
                                                 output_file = file.path(output_dir, "integrated_calc_tseries.xlsx"))
@@ -111,13 +104,14 @@ run_complete_welfare_analysis <- function(human_data_path,
   integrated_data_path <- file.path(output_dir, "integrated_calc_tseries.xlsx") 
   write.xlsx(integrated_data, integrated_data_path)
   
-  # Step 6: Run analysis on integrated data (CHANGE THIS PART)
+  # Step 6: Run analysis on integrated data
   cat("Step 6: Running welfare analysis on integrated data...\n")
   analysis_results <- analyze_welfare_data(
     data_path = integrated_data_path,
     welfare_level_method = welfare_level_method,
     output_dir = file.path(output_dir, "analysis_results"),
-    create_visualizations = create_visualizations
+    create_visualizations = create_visualizations,
+    skip_population_plots = skip_population_plots
   )
   
   cat("\nComplete welfare analysis pipeline completed successfully!\n")
@@ -140,23 +134,51 @@ run_complete_welfare_analysis <- function(human_data_path,
 run_all_welfare_method_combinations <- function(human_data_path,
                                                 farmed_animal_data_path,
                                                 wild_animal_data_path,
-                                                output_base_dir = "welfare_analysis_results",
+                                                output_base_dir,
                                                 create_visualizations = TRUE) {
   
-  # Create population trends directory at the upper level
+  # Run the analyses for each welfare level method first to get integrated data
+  welfare_level_methods <- c("isoelastic", "3282")
+  results_list <- list()
+  
+  for(wl_method in welfare_level_methods) {
+    cat("\n\n========================================================\n")
+    cat(paste0("Running analysis with welfare level method '", wl_method, "'...\n"))
+    cat("========================================================\n\n")
+    
+    # Run complete analysis with this method
+    results <- run_complete_welfare_analysis(
+      human_data_path = human_data_path,
+      farmed_animal_data_path = farmed_animal_data_path,
+      wild_animal_data_path = wild_animal_data_path,
+      welfare_level_method = wl_method,
+      welfare_potential_method = "ALL",
+      output_base_dir = output_base_dir,
+      create_visualizations = create_visualizations,
+      skip_population_plots = TRUE  # Skip individual plots as we'll create combined ones later
+    )
+    
+    # Store results
+    results_list[[wl_method]] <- results
+    
+    cat(paste0("\nAnalysis complete for '", wl_method, "'.\n"))
+  }
+  
+  # After analysis, create top-level population trend visualizations
+  # using the integrated data from the first result (both methods have same integrated data)
+  cat("Creating top-level population trend visualizations...\n")
+  
+  # Get integrated data from first analysis
+  integrated_data <- results_list[[welfare_level_methods[1]]]$integrated_data
+  
+  # Create population trends directory
   pop_trends_dir <- file.path(output_base_dir, "population_trends")
   if(!dir.exists(pop_trends_dir)) {
     dir.create(pop_trends_dir, recursive = TRUE)
   }
   
-  # First, create the population trend visualizations that are independent of method
-  # Read the raw animal data to create population visualizations
-  cat("Creating population trend visualizations at the top level...\n")
-  farmed_animal_data <- read_excel(farmed_animal_data_path)
-  wild_animal_data <- read_excel(wild_animal_data_path)
-  
   # Filter out rows with NA values for population
-  filtered_data <- farmed_animal_data %>%
+  filtered_data <- integrated_data %>%
     filter(!is.na(aliveatanytime))
   
   # Plot 1: All population trends
@@ -170,79 +192,117 @@ run_all_welfare_method_combinations <- function(human_data_path,
   ggsave(file.path(pop_trends_dir, "population_trends.pdf"), 
          plot = p1, width = 10, height = 6)
   
-  # Plot 2: No bees
-  filtered_nb <- filtered_data %>% 
+  # No wild terrestrial arthropods
+  filtered_n_wta <- filtered_data %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_n_wta <- ggplot(filtered_n_wta, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta.pdf"), 
+         plot = p_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_n_wta_wfi <- filtered_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_n_wta_wfi <- ggplot(filtered_n_wta_wfi, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi.pdf"), 
+         plot = p_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees
+  filtered_n_wta_wfi_fbe <- filtered_n_wta_wfi %>% 
     filter(Category != "Bees")
   
-  p2 <- ggplot(filtered_nb, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_n_wta_wfi_fbe <- ggplot(filtered_n_wta_wfi_fbe, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(pop_trends_dir, "population_trends_nb.pdf"), 
-         plot = p2, width = 10, height = 6)
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe.pdf"), 
+         plot = p_n_wta_wfi_fbe, width = 10, height = 6)
   
-  # Plot 3: No bees, no fish
-  filtered_nbf <- filtered_nb %>% 
-    filter(Category != "Fish for Slaughter" & Category != "Fish")
+  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
+  filtered_n_wta_wfi_fbe_ffi <- filtered_n_wta_wfi_fbe %>% 
+    filter(Category != "Fish")
   
-  p3 <- ggplot(filtered_nbf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_n_wta_wfi_fbe_ffi <- ggplot(filtered_n_wta_wfi_fbe_ffi, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees, No Fish)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(pop_trends_dir, "population_trends_nbf.pdf"), 
-         plot = p3, width = 10, height = 6)
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe_ffi.pdf"), 
+         plot = p_n_wta_wfi_fbe_ffi, width = 10, height = 6)
   
-  # Plot 4: No bees, no fish, no chickens
-  filtered_nbfc <- filtered_nbf %>% 
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no wild terrestrial mammals
+  filtered_n_wta_wfi_fbe_ffi_wtm <- filtered_n_wta_wfi_fbe_ffi %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_n_wta_wfi_fbe_ffi_wtm <- ggplot(filtered_n_wta_wfi_fbe_ffi_wtm, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe_ffi_wtm.pdf"), 
+         plot = p_n_wta_wfi_fbe_ffi_wtm, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no wild birds
+  filtered_n_wta_wfi_fbe_ffi_wtm_wbi <- filtered_n_wta_wfi_fbe_ffi_wtm %>% 
+    filter(Category != "Wild birds")
+  
+  p_n_wta_wfi_fbe_ffi_wtm_wbi <- ggplot(filtered_n_wta_wfi_fbe_ffi_wtm_wbi, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no w. birds)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe_ffi_wtm_wbi.pdf"), 
+         plot = p_n_wta_wfi_fbe_ffi_wtm_wbi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no w. birds, no chickens
+  filtered_n_wta_wfi_fbe_ffi_wtm_wbi_fch <- filtered_n_wta_wfi_fbe_ffi_wtm_wbi %>% 
     filter(Category != "Chickens")
   
-  p4 <- ggplot(filtered_nbfc, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_n_wta_wfi_fbe_ffi_wtm_wbi_fch <- ggplot(filtered_n_wta_wfi_fbe_ffi_wtm_wbi_fch, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees, No Fish, No Chickens)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no w. birds, no chickens)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(pop_trends_dir, "population_trends_nbfc.pdf"), 
-         plot = p4, width = 10, height = 6)
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe_ffi_wtm_wbi_fch.pdf"), 
+         plot = p_n_wta_wfi_fbe_ffi_wtm_wbi_fch, width = 10, height = 6)
   
-  # Now run the analyses for all method combinations
-  welfare_level_methods <- c("isoelastic", "3282")
-  welfare_potential_methods <- c("WR", "NC")
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no w. birds, no chickens, no humans
+  filtered_n_wta_wfi_fbe_ffi_wtm_wbi_fch_hum <- filtered_n_wta_wfi_fbe_ffi_wtm_wbi_fch %>% 
+    filter(Category != "Humans")
   
-  results_list <- list()
+  p_n_wta_wfi_fbe_ffi_wtm_wbi_fch_hum <- ggplot(filtered_n_wta_wfi_fbe_ffi_wtm_wbi_fch_hum, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no wt. mammals, no w. birds, no chickens, no humans)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
   
-  for(wl_method in welfare_level_methods) {
-    for(wp_method in welfare_potential_methods) {
-      cat("\n\n========================================================\n")
-      cat(paste0("Running analysis with welfare level method '", wl_method, 
-                 "' and welfare potential method '", wp_method, "'...\n"))
-      cat("========================================================\n\n")
-      
-      # Run complete analysis with this combination
-      results <- run_complete_welfare_analysis(
-        human_data_path = human_data_path,
-        farmed_animal_data_path = farmed_animal_data_path,
-        wild_animal_data_path = wild_animal_data_path,
-        welfare_level_method = wl_method,
-        welfare_potential_method = wp_method,
-        output_base_dir = output_base_dir,
-        create_visualizations = create_visualizations,
-        skip_population_plots = TRUE  # Skip population plots as we've already created them
-      )
-      
-      # Store results
-      results_list[[paste0(wl_method, "_", wp_method)]] <- results
-      
-      cat(paste0("\nAnalysis complete for '", wl_method, "_", wp_method, "'.\n"))
-    }
-  }
+  ggsave(file.path(pop_trends_dir, "population_trends_n_wta_wfi_fbe_ffi_wtm_wbi_fch_hum.pdf"), 
+         plot = p_n_wta_wfi_fbe_ffi_wtm_wbi_fch_hum, width = 10, height = 6)
   
   return(results_list)
 }

@@ -467,9 +467,14 @@ c#' Create standard set of visualizations
 #' @param pop_col Column name for population values
 #' @param method_name Method name for plot titles
 #' @param output_dir Directory for saving visualizations
+#' Create standard set of visualizations
+#' 
+#' @param data The processed dataset
+#' @param net_series The net series data
+#' @param output_dir Directory for saving visualizations
 create_utility_visualizations <- function(data, 
-                                  net_series, 
-                                  output_dir = "visualizations") {
+                                          net_series, 
+                                          output_dir = "visualizations") {
   
   # Create directory if it doesn't exist
   if(!dir.exists(output_dir)) {
@@ -488,7 +493,7 @@ create_utility_visualizations <- function(data,
   
   ########## POPULATION PLOTS FIRST ##########
   
-  # Plot 1: Population over time
+  # Plot 1: Population over time (all categories)
   p1 <- ggplot(filtered_data, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
     labs(title = "Population Over Time", 
@@ -498,44 +503,70 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(pop_dir, paste0("population_trends.pdf")), 
          plot = p1, width = 10, height = 6)
   
-  #Plot 2: Population over time (no bees)
-  filtered_nb <- filtered_data %>% 
+  # Population over time (no wild terrestrial arthropods)
+  filtered_na <- filtered_data %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_na <- ggplot(filtered_na, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  ggsave(file.path(pop_dir, paste0("population_trends_na.pdf")), 
+         plot = p_na, width = 10, height = 6)
+  
+  # Population over time (no wt arthropods, no wild fish)
+  filtered_naf <- filtered_na %>% 
+    filter(Category != "Wild fish")
+  
+  p_naf <- ggplot(filtered_naf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish)", 
+         y = "Population (alive at any time)", 
+         x = "Year") +
+    theme_minimal()
+  ggsave(file.path(pop_dir, paste0("population_trends_naf.pdf")), 
+         plot = p_naf, width = 10, height = 6)
+  
+  # Population over time (no wt arthropods, no w fish, no bees)
+  filtered_nafb <- filtered_naf %>% 
     filter(Category != "Bees")
   
-  p_nb <- ggplot(filtered_nb, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_nafb <- ggplot(filtered_nafb, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nb.pdf")), 
-         plot = p1, width = 10, height = 6)
+  ggsave(file.path(pop_dir, paste0("population_trends_nafb.pdf")), 
+         plot = p_nafb, width = 10, height = 6)
   
-  #Plot 3: Population over time (no bees)
-  filtered_nbf <- filtered_nb %>% 
-    filter(Category != "Fish for Slaughter" & Category != "Fish")
+  # Population over time (no wt. arthropods, no w. fish, no bees, no farmed fish)
+  filtered_nafbf <- filtered_nafb %>% 
+    filter(Category != "Fish")
   
-  p_nbf <- ggplot(filtered_nbf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_nafbf <- ggplot(filtered_nafbf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees No Fish)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nbf.pdf")), 
-         plot = p1, width = 10, height = 6)
+  ggsave(file.path(pop_dir, paste0("population_trends_nafbf.pdf")), 
+         plot = p_nafbf, width = 10, height = 6)
   
-  #Plot 4: Population over time (no bees no fish no cattle)
-  filtered_nbfc <- filtered_nbf %>% 
+  # Population over time (no wt. arthropods, no w. fish, no bees, no fish, no cattle)
+  filtered_nafbfc <- filtered_nafbf %>% 
     filter(Category != "Cattle")
   
-  p_nbfc <- ggplot(filtered_nbfc, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
+  p_nafbfc <- ggplot(filtered_nafbfc, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Population Over Time (No Bees No Fish No Cattle)", 
+    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no cattle)", 
          y = "Population (alive at any time)", 
          x = "Year") +
     theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nbfc.pdf")), 
-         plot = p1, width = 10, height = 6)
+  ggsave(file.path(pop_dir, paste0("population_trends_nafbfc.pdf")), 
+         plot = p_nafbfc, width = 10, height = 6)
   
   
   ########## NC UTILITY PLOTS SECOND ##########
@@ -555,47 +586,103 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "NC_utility_trends.pdf"), 
          plot = p_nc, width = 10, height = 6)
   
-  # No humans
-  filtered_nc_nh <- filtered_data_nc %>% 
+  # No wild terrestrial arthropods
+  filtered_nc_n_wta <- filtered_data_nc %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_nc_n_wta <- ggplot(filtered_nc_n_wta, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta.pdf"), 
+         plot = p_nc_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_nc_n_wta_wfi <- filtered_nc_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_nc_n_wta_wfi <- ggplot(filtered_nc_n_wta_wfi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi.pdf"), 
+         plot = p_nc_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans
+  filtered_nc_n_wta_wfi_hum <- filtered_nc_n_wta_wfi %>% 
     filter(Category != "Humans")
   
-  p_nc_nh <- ggplot(filtered_nc_nh, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+  p_nc_n_wta_wfi_hum <- ggplot(filtered_nc_n_wta_wfi_hum, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Utility Over Time - NC Method (No Humans)", 
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans)", 
          y = "Utility", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(output_dir, "NC_utility_trends_nh.pdf"), 
-         plot = p_nc_nh, width = 10, height = 6)
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum.pdf"), 
+         plot = p_nc_n_wta_wfi_hum, width = 10, height = 6)
   
-  # No humans, no fish
-  filtered_nc_nhf <- filtered_nc_nh %>% 
-    filter(Category != "Fish for Slaughter" & Category != "Fish")
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals
+  filtered_nc_n_wta_wfi_hum_wtm <- filtered_nc_n_wta_wfi_hum %>% 
+    filter(Category != "Wild terrestrial mammals")
   
-  p_nc_nhf <- ggplot(filtered_nc_nhf, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+  p_nc_n_wta_wfi_hum_wtm <- ggplot(filtered_nc_n_wta_wfi_hum_wtm, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Utility Over Time - NC Method (No Humans, No Fish)", 
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals)", 
          y = "Utility", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(output_dir, "NC_utility_trends_nhf.pdf"), 
-         plot = p_nc_nhf, width = 10, height = 6)
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm, width = 10, height = 6)
   
-  # No humans, no fish, no chickens
-  filtered_nc_nhfc <- filtered_nc_nhf %>% 
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals, no farmed fish
+  filtered_nc_n_wta_wfi_hum_wtm_ffi <- filtered_nc_n_wta_wfi_hum_wtm %>% 
+    filter(Category != "Fish")
+  
+  p_nc_n_wta_wfi_hum_wtm_ffi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens
+  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch <- filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
     filter(Category != "Chickens")
   
-  p_nc_nhfc <- ggplot(filtered_nc_nhfc, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+  p_nc_n_wta_wfi_hum_wtm_ffi_fch <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Utility Over Time - NC Method (No Humans, No Fish, No Chickens)", 
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens)", 
          y = "Utility", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(output_dir, "NC_utility_trends_nhfc.pdf"), 
-         plot = p_nc_nhfc, width = 10, height = 6)
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens, no wild birds
+  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
+    filter(Category != "Wild birds")
+  
+  p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens, No w. birds)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
   
   # NC net utility comparison (with and without humans)
   # Calculate net NC utility without humans
@@ -648,31 +735,115 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
          plot = p_wr, width = 10, height = 6)
   
-  # No bees
-  filtered_wr_nb <- filtered_data_wr %>% 
+  # No wild terrestrial arthropods
+  filtered_wr_n_wta <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_wr_n_wta <- ggplot(filtered_wr_n_wta, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
+         plot = p_wr_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_wr_n_wta_wfi <- filtered_wr_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_wr_n_wta_wfi <- ggplot(filtered_wr_n_wta_wfi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
+         plot = p_wr_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees
+  filtered_wr_n_wta_wfi_fbe <- filtered_wr_n_wta_wfi %>% 
     filter(Category != "Bees")
   
-  p_wr_nb <- ggplot(filtered_wr_nb, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+  p_wr_n_wta_wfi_fbe <- ggplot(filtered_wr_n_wta_wfi_fbe, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Utility Over Time - WR Method (No Bees)", 
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
          y = "Utility", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(output_dir, "WR_utility_trends_nb.pdf"), 
-         plot = p_wr_nb, width = 10, height = 6)
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe, width = 10, height = 6)
   
-  # No bees, no fish
-  filtered_wr_nbf <- filtered_wr_nb %>% 
-    filter(Category != "Fish for Slaughter" & Category != "Fish")
+  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
+  filtered_wr_n_wta_wfi_fbe_ffi <- filtered_wr_n_wta_wfi_fbe %>% 
+    filter(Category != "Fish")
   
-  p_wr_nbf <- ggplot(filtered_wr_nbf, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+  p_wr_n_wta_wfi_fbe_ffi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
-    labs(title = "Utility Over Time - WR Method (No Bees, No Fish)", 
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
          y = "Utility", 
          x = "Year") +
     theme_minimal()
   
-  ggsave(file.path(output_dir, "WR_utility_trends_nbf.pdf"), 
-         plot = p_wr_nbf, width = 10, height = 6)
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens
+  filtered_wr_n_wta_wfi_fbe_ffi_fch <- filtered_wr_n_wta_wfi_fbe_ffi %>% 
+    filter(Category != "Chickens")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wild terrestrial mammals
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm <- filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
+    filter(Category != "Humans")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans, no wild birds
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
+    filter(Category != "Wild birds")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
 }

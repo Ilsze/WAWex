@@ -96,7 +96,7 @@ run_complete_welfare_analysis <- function(human_data_path,
   #Integrate farmed animal and human data with wild animal data
   integrated_data <- integrate_wild_animal_data(wild_data = wild_animal_data, 
                                                 calc_tseries = integrated_hf_data, 
-                                                output_file = "second_pass/integrated_calc_tseries.xlsx")
+                                                output_file = file.path(output_dir, "integrated_calc_tseries.xlsx"))
   
   
   # Step 5: Ensure dataset has required potential and utility columns

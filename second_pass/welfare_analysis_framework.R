@@ -200,46 +200,6 @@ calculate_net_series <- function(data) {
   return(net_series)
 }
 
-#' Calculate net series excluding humans
-#' 
-#' @param data The input dataset
-#' @return Dataframe with net series (no humans) by year
-calculate_net_NC_series_no_humans <- function(data) {
-  
-  # Filter out humans
-  data_nh <- data %>% 
-    filter(Category != "Humans")
-  
-  # Determine the common years across all non-human categories
-  year_bounds_nh <- data_nh %>%
-    group_by(Category) %>%
-    summarize(
-      min_y = min(Year, na.rm = TRUE),
-      max_y = max(Year, na.rm = TRUE)
-    )
-  
-  common_window_nh <- year_bounds_nh %>%
-    summarize(
-      start = max(min_y),
-      end = min(max_y)
-    )
-  
-  # Filter to only include years in the common window
-  data_global_nh <- data_nh %>%
-    filter(Year >= common_window_nh$start,
-           Year <= common_window_nh$end)
-  
-  # Compute net series
-  net_NC_series_nh <- data_global_nh %>%
-    group_by(Year) %>%
-    summarize(
-      NC_utility = sum(NC_utility, na.rm = FALSE),
-      NC_tot = sum(NC_tot, na.rm = FALSE)
-    )
-  
-  return(net_NC_series_nh)
-}
-
 #' Calculate correlations and elasticities between human and animal populations/utilities
 #' for both WR and NC methods in a single combined dataframe
 #' 
@@ -457,15 +417,7 @@ calculate_factor_changes <- function(data) {
 }
 
 
-c#' Create standard set of visualizations
-#' 
-#' @param data The processed dataset
-#' @param net_series The net series data
-#' @param net_series_nh The net series data without humans
-#' @param utility_col Column name for utility values
-#' @param pop_col Column name for population values
-#' @param method_name Method name for plot titles
-#' @param output_dir Directory for saving visualizations
+
 #' Create standard set of visualizations
 #' 
 #' @param data The processed dataset
@@ -595,10 +547,19 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
   
-  # NC net utility comparison (with and without humans)
+  ########## NET COMPARISON PLOTS - ALL LIMITED TO 1970-2017 ##########
+  
+  # Define the time range constraints based on wild birds data (1970-2017)
+  min_year_constraint <- 1970
+  max_year_constraint <- 2017
+  
+  ########## ORIGINAL COMPARISON: NC_net_utility_comp.pdf ##########
+  
   # Calculate net NC utility without humans
   net_nc_nh_data <- filtered_data_nc %>% 
-    filter(Category != "Humans") %>%
+    filter(Category != "Humans", 
+           Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
     group_by(Year) %>%
     summarize(
       NC_utility = sum(NC_utility, na.rm = TRUE),
@@ -606,8 +567,10 @@ create_utility_visualizations <- function(data,
     ) %>%
     mutate(Group = "Without Humans")
   
-  # Get with-humans data from net_series
+  # Get with-humans data, limited to 1970-2017
   humans_plus_animals <- net_series %>%
+    filter(Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
     select(Year, NC_utility) %>%
     mutate(Group = "With Humans")
   
@@ -617,17 +580,121 @@ create_utility_visualizations <- function(data,
     net_nc_nh_data
   )
   
+  # Create and save the plot
   p_nc_comp <- ggplot(combined_nc_series, aes(x = Year, y = NC_utility, color = Group)) +
-    geom_line(na.rm = FALSE) +
+    geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
     labs(title = "NC Net Utility Comparison (With vs. Without Humans)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
-    theme_minimal()
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)  # Explicitly set x-axis limits
   
-  ggsave(file.path(output_dir, "NC_net_utility_comparison.pdf"), 
+  ggsave(file.path(output_dir, "NC_net_utility_comp.pdf"), 
          plot = p_nc_comp, width = 10, height = 6)
+  
+  ########## NEW COMPARISON: NC_net_utility_comp_n_wta_wfi.pdf ##########
+  
+  # Get filtered categories (no wild terrestrial arthropods, no wild fish)
+  filtered_nc_n_wta_wfi <- filtered_data_nc %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate net utility without humans, limited to 1970-2017
+  net_nc_n_wta_wfi_nh_data <- filtered_nc_n_wta_wfi %>% 
+    filter(Category != "Humans",
+           Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      NC_utility = sum(NC_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Calculate net utility with humans, limited to 1970-2017
+  net_nc_n_wta_wfi_wh_data <- filtered_nc_n_wta_wfi %>%
+    filter(Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      NC_utility = sum(NC_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_nc_n_wta_wfi_series <- bind_rows(
+    net_nc_n_wta_wfi_wh_data,
+    net_nc_n_wta_wfi_nh_data
+  )
+  
+  # Create and save the plot
+  p_nc_comp_n_wta_wfi <- ggplot(combined_nc_n_wta_wfi_series, aes(x = Year, y = NC_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "NC Net Utility Comparison (No wt. arthropods, No w. fish)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)  # Explicitly set x-axis limits
+  
+  ggsave(file.path(output_dir, "NC_net_utility_comp_n_wta_wfi.pdf"), 
+         plot = p_nc_comp_n_wta_wfi, width = 10, height = 6)
+  
+  ########## NEW COMPARISON: NC_net_utility_comp_nw.pdf ##########
+  
+  # Define wild animal categories
+  wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
+  
+  # Filter to exclude wild categories
+  filtered_nc_nw <- filtered_data_nc %>% 
+    filter(!Category %in% wild_categories)
+  
+  # Calculate net utility without humans, limited to 1970-2017
+  net_nc_nw_nh_data <- filtered_nc_nw %>% 
+    filter(Category != "Humans",
+           Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      NC_utility = sum(NC_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Calculate net utility with humans, limited to 1970-2017
+  net_nc_nw_wh_data <- filtered_nc_nw %>%
+    filter(Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      NC_utility = sum(NC_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_nc_nw_series <- bind_rows(
+    net_nc_nw_wh_data,
+    net_nc_nw_nh_data
+  )
+  
+  # Create and save the plot
+  p_nc_comp_nw <- ggplot(combined_nc_nw_series, aes(x = Year, y = NC_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "NC Net Utility Comparison (No Wild Animals)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)  # Explicitly set x-axis limits
+  
+  ggsave(file.path(output_dir, "NC_net_utility_comp_nw.pdf"), 
+         plot = p_nc_comp_nw, width = 10, height = 6)
   
   ########## WR UTILITY PLOTS THIRD ##########
   
@@ -757,6 +824,199 @@ create_utility_visualizations <- function(data,
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
          plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
+  
+  ########## WR NET COMPARISON PLOTS - ALL LIMITED TO 1970-2017 ##########
+  
+  # 1. WR_net_utility_comp - Basic with/without humans comparison
+  
+  # Calculate net WR utility without humans
+  net_wr_nh_data <- filtered_data_wr %>% 
+    filter(Category != "Humans", 
+           Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Get with-humans data, limited to 1970-2017
+  humans_plus_animals_wr <- net_series %>%
+    filter(Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    select(Year, WR_utility) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_wr_series <- bind_rows(
+    humans_plus_animals_wr,
+    net_wr_nh_data
+  )
+  
+  # Create and save the plot
+  p_wr_comp <- ggplot(combined_wr_series, aes(x = Year, y = WR_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "WR Net Utility Comparison (With vs. Without Humans)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)
+  
+  ggsave(file.path(output_dir, "WR_net_utility_comp.pdf"), 
+         plot = p_wr_comp, width = 10, height = 6)
+  
+  # 2. WR_net_utility_comp_n_wta_wfi - No wild terrestrial arthropods, no wild fish
+  
+  # Get filtered categories
+  filtered_wr_n_wta_wfi <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate net utility without humans, limited to 1970-2017
+  net_wr_n_wta_wfi_nh_data <- filtered_wr_n_wta_wfi %>% 
+    filter(Category != "Humans",
+           Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Calculate net utility with humans, limited to 1970-2017
+  net_wr_n_wta_wfi_wh_data <- filtered_wr_n_wta_wfi %>%
+    filter(Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_wr_n_wta_wfi_series <- bind_rows(
+    net_wr_n_wta_wfi_wh_data,
+    net_wr_n_wta_wfi_nh_data
+  )
+  
+  # Create and save the plot
+  p_wr_comp_n_wta_wfi <- ggplot(combined_wr_n_wta_wfi_series, aes(x = Year, y = WR_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)
+  
+  ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi.pdf"), 
+         plot = p_wr_comp_n_wta_wfi, width = 10, height = 6)
+  
+  # 3. WR_net_utility_comp_nw - No wild animals
+  
+  # Filter to exclude wild categories
+  filtered_wr_nw <- filtered_data_wr %>% 
+    filter(!Category %in% wild_categories)
+  
+  # Calculate net utility without humans, limited to 1970-2017
+  net_wr_nw_nh_data <- filtered_wr_nw %>% 
+    filter(Category != "Humans",
+           Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Calculate net utility with humans, limited to 1970-2017
+  net_wr_nw_wh_data <- filtered_wr_nw %>%
+    filter(Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_wr_nw_series <- bind_rows(
+    net_wr_nw_wh_data,
+    net_wr_nw_nh_data
+  )
+  
+  # Create and save the plot
+  p_wr_comp_nw <- ggplot(combined_wr_nw_series, aes(x = Year, y = WR_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "WR Net Utility Comparison (No Wild Animals)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)
+  
+  ggsave(file.path(output_dir, "WR_net_utility_comp_nw.pdf"), 
+         plot = p_wr_comp_nw, width = 10, height = 6)
+  
+  # 4. WR_net_utility_comp_n_wta_wfi_fbe - No wild terrestrial arthropods, no wild fish, no bees
+  
+  # Get filtered categories
+  filtered_wr_n_wta_wfi_fbe <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish",
+           Category != "Bees")
+  
+  # Calculate net utility without humans, limited to 1970-2017
+  net_wr_n_wta_wfi_fbe_nh_data <- filtered_wr_n_wta_wfi_fbe %>% 
+    filter(Category != "Humans",
+           Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "Without Humans")
+  
+  # Calculate net utility with humans, limited to 1970-2017
+  net_wr_n_wta_wfi_fbe_wh_data <- filtered_wr_n_wta_wfi_fbe %>%
+    filter(Year >= min_year_constraint,
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      WR_utility = sum(WR_utility, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(Group = "With Humans")
+  
+  # Combine for comparison
+  combined_wr_n_wta_wfi_fbe_series <- bind_rows(
+    net_wr_n_wta_wfi_fbe_wh_data,
+    net_wr_n_wta_wfi_fbe_nh_data
+  )
+  
+  # Create and save the plot
+  p_wr_comp_n_wta_wfi_fbe <- ggplot(combined_wr_n_wta_wfi_fbe_series, aes(x = Year, y = WR_utility, color = Group)) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees)", 
+         y = "Net Utility", 
+         x = "Year",
+         color = "Dataset") +
+    theme_minimal() +
+    xlim(min_year_constraint, max_year_constraint)
+  
+  ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi_fbe.pdf"), 
+         plot = p_wr_comp_n_wta_wfi_fbe, width = 10, height = 6)
 }  
   
   

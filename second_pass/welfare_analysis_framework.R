@@ -26,8 +26,7 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
 analyze_welfare_data <- function(data_path, 
                                  welfare_level_method = "isoelastic",
                                  output_dir = "welfare_analysis_results",
-                                 create_visualizations = TRUE,
-                                 skip_population_plots = FALSE) {
+                                 create_visualizations = TRUE) {
   
   # Create output directory if it doesn't exist
   if(!dir.exists(output_dir)) {
@@ -481,94 +480,6 @@ create_utility_visualizations <- function(data,
     dir.create(output_dir, recursive = TRUE)
   }
   
-  # Create directories for different plot types
-  pop_dir <- file.path(output_dir, "population_trends")
-  if(!dir.exists(pop_dir)) {
-    dir.create(pop_dir, recursive = TRUE)
-  }
-  
-  # Filter out rows with NA values for population
-  filtered_data <- data %>%
-    filter(!is.na(aliveatanytime))
-  
-  ########## POPULATION PLOTS FIRST ##########
-  
-  # Plot 1: Population over time (all categories)
-  p1 <- ggplot(filtered_data, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends.pdf")), 
-         plot = p1, width = 10, height = 6)
-  
-  # Population over time (no wild terrestrial arthropods)
-  filtered_na <- filtered_data %>% 
-    filter(Category != "Wild terrestrial arthropods")
-  
-  p_na <- ggplot(filtered_na, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time (no wt. arthropods)", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_na.pdf")), 
-         plot = p_na, width = 10, height = 6)
-  
-  # Population over time (no wt arthropods, no wild fish)
-  filtered_naf <- filtered_na %>% 
-    filter(Category != "Wild fish")
-  
-  p_naf <- ggplot(filtered_naf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time (no wt. arthropods, no w. fish)", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_naf.pdf")), 
-         plot = p_naf, width = 10, height = 6)
-  
-  # Population over time (no wt arthropods, no w fish, no bees)
-  filtered_nafb <- filtered_naf %>% 
-    filter(Category != "Bees")
-  
-  p_nafb <- ggplot(filtered_nafb, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees)", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nafb.pdf")), 
-         plot = p_nafb, width = 10, height = 6)
-  
-  # Population over time (no wt. arthropods, no w. fish, no bees, no farmed fish)
-  filtered_nafbf <- filtered_nafb %>% 
-    filter(Category != "Fish")
-  
-  p_nafbf <- ggplot(filtered_nafbf, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish)", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nafbf.pdf")), 
-         plot = p_nafbf, width = 10, height = 6)
-  
-  # Population over time (no wt. arthropods, no w. fish, no bees, no fish, no cattle)
-  filtered_nafbfc <- filtered_nafbf %>% 
-    filter(Category != "Cattle")
-  
-  p_nafbfc <- ggplot(filtered_nafbfc, aes(x = Year, y = aliveatanytime, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Population Over Time (no wt. arthropods, no w. fish, no bees, no f. fish, no cattle)", 
-         y = "Population (alive at any time)", 
-         x = "Year") +
-    theme_minimal()
-  ggsave(file.path(pop_dir, paste0("population_trends_nafbfc.pdf")), 
-         plot = p_nafbfc, width = 10, height = 6)
-  
-  
   ########## NC UTILITY PLOTS SECOND ##########
   
   # Filter out rows with NA values for NC utility
@@ -846,4 +757,6 @@ create_utility_visualizations <- function(data,
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
          plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
-}
+}  
+  
+  

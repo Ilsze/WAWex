@@ -27,8 +27,7 @@ run_complete_welfare_analysis <- function(human_data_path,
                                           welfare_level_method = "isoelastic",
                                           welfare_potential_method = "ALL",
                                           output_base_dir,  # No default - always passed from caller
-                                          create_visualizations = TRUE,
-                                          skip_population_plots = FALSE) {
+                                          create_visualizations = TRUE) {
   
   # Create method-specific output directory
   # Modified to just use welfare_level_method since both NC and WR are calculated
@@ -110,8 +109,7 @@ run_complete_welfare_analysis <- function(human_data_path,
     data_path = integrated_data_path,
     welfare_level_method = welfare_level_method,
     output_dir = file.path(output_dir, "analysis_results"),
-    create_visualizations = create_visualizations,
-    skip_population_plots = skip_population_plots
+    create_visualizations = create_visualizations
   )
   
   cat("\nComplete welfare analysis pipeline completed successfully!\n")
@@ -154,8 +152,7 @@ run_all_welfare_method_combinations <- function(human_data_path,
       welfare_level_method = wl_method,
       welfare_potential_method = "ALL",
       output_base_dir = output_base_dir,
-      create_visualizations = create_visualizations,
-      skip_population_plots = TRUE  # Skip individual plots as we'll create combined ones later
+      create_visualizations = create_visualizations
     )
     
     # Store results

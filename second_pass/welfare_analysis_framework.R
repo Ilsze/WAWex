@@ -711,14 +711,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_data_nc$Year), 
-                                  max(filtered_data_nc$Year) + 5)) +
-    labs(title = "Utility Over Time - NC Method", 
+                                  max(filtered_data_nc$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends.pdf"), 
@@ -737,14 +737,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta$Year), 
-                                  max(filtered_nc_n_wta$Year) + 5)) +
+                                  max(filtered_nc_n_wta$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta.pdf"), 
@@ -763,14 +763,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi$Year), 
-                                  max(filtered_nc_n_wta_wfi$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi.pdf"), 
@@ -789,14 +789,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi_hum$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum.pdf"), 
@@ -815,14 +815,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi_hum_wtm$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm.pdf"), 
@@ -841,14 +841,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi.pdf"), 
@@ -867,14 +867,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch.pdf"), 
@@ -893,14 +893,14 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year) + 5)) +
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens, No w. birds)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
@@ -935,14 +935,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_data_wr$Year), 
-                                  max(filtered_data_wr$Year) + 5)) +
-    labs(title = "Utility Over Time - WR Method", 
+                                  max(filtered_data_wr$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (1950-2025)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
@@ -961,14 +961,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta$Year), 
-                                  max(filtered_wr_n_wta$Year) + 5)) +
+                                  max(filtered_wr_n_wta$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
@@ -987,14 +987,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi$Year), 
-                                  max(filtered_wr_n_wta_wfi$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
@@ -1013,14 +1013,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
@@ -1039,14 +1039,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
@@ -1065,14 +1065,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
@@ -1091,14 +1091,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
@@ -1117,14 +1117,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
@@ -1143,14 +1143,14 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year) + 5)) +
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
          y = "Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
@@ -1248,11 +1248,11 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("NC Net Utility Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp.pdf"), 
@@ -1291,11 +1291,11 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("NC Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp_n_wta_wfi.pdf"), 
@@ -1333,11 +1333,11 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("NC Net Utility Comparison (No Wild Animals, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp_nw.pdf"), 
@@ -1400,11 +1400,11 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("WR Net Utility Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp.pdf"), 
@@ -1443,11 +1443,11 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("WR Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi.pdf"), 
@@ -1487,11 +1487,11 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi_fbe.pdf"), 
@@ -1529,11 +1529,11 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("WR Net Utility Comparison (No Wild Animals, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_nw.pdf"), 
@@ -1592,11 +1592,11 @@ create_nc_net_tot_series <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("Net Total Neurons Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Total Neurons", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_tot_trends.pdf"), 
@@ -1637,11 +1637,11 @@ create_nc_net_tot_series <- function(extended_data_for_net,
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
     labs(title = paste0("Net Total Neurons Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Total Neurons", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_tot_trends_n_wta_wfi.pdf"), 
@@ -1687,14 +1687,14 @@ create_disaggregated_plots_with_totals <- function(data,
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min(filtered_data_nc_tot$Year), 
-                                  max(filtered_data_nc_tot$Year) + 5)) +
-    labs(title = "Total Neurons Over Time by Category", 
+                                  max(filtered_data_nc_tot$Year) + 30)) +
+    labs(title = "Total Neurons Over Time by Category (1950-2025)", 
          y = "Total Neurons", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_tot_trends.pdf"), 
@@ -1726,16 +1726,16 @@ create_disaggregated_plots_with_totals <- function(data,
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_with_total$Year), 
-                                  max(plot_data_with_total$Year) + 5)) +
+                                  max(plot_data_with_total$Year) + 30)) +
     labs(title = "Total Neurons Over Time (No wt. arthropods, No w. fish)", 
          y = "Total Neurons", 
          x = "Year") +
     # Remove the legend since we have direct labels
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi.pdf"), 
@@ -1767,16 +1767,16 @@ create_disaggregated_plots_with_totals <- function(data,
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_nc_utility_with_total$Year), 
-                                  max(plot_data_nc_utility_with_total$Year) + 5)) +
+                                  max(plot_data_nc_utility_with_total$Year) + 30)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
          y = "NC Utility", 
          x = "Year") +
     # Remove the legend since we have direct labels
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_with_total.pdf"), 
@@ -1808,16 +1808,16 @@ create_disaggregated_plots_with_totals <- function(data,
                 ungroup(),
               aes(label = Category), 
               hjust = -0.1, 
-              size = 7, 
+              size = 6, 
               check_overlap = TRUE) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_wr_utility_with_total$Year), 
-                                  max(plot_data_wr_utility_with_total$Year) + 5)) +
+                                  max(plot_data_wr_utility_with_total$Year) + 30)) +
     labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
          y = "WR Utility", 
          x = "Year") +
     # Remove the legend since we have direct labels
-     theme_minimal() +   theme(     plot.title = element_text(size = 24, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_with_total.pdf"), 

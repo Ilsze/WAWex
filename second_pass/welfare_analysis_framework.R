@@ -604,25 +604,17 @@ create_trend_extension_plots <- function(original_data, extended_data, output_di
 
 
 
-
-#' Create standard set of visualizations
+#' Create NC utility trend plots with progressive category exclusions
 #' 
 #' @param data The processed dataset
-#' @param net_series The net series data
 #' @param output_dir Directory for saving visualizations
-create_utility_visualizations <- function(data, 
-                                          net_series, 
-                                          output_dir = "visualizations") {
+#' @return NULL (saves plots to files)
+create_nc_utility_plots <- function(data, output_dir = "visualizations") {
   
   # Create directory if it doesn't exist
   if(!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
-  
-  # Define wild animal categories
-  wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
-  
-  ########## NC UTILITY PLOTS ##########
   
   # Filter out rows with NA values for NC utility
   filtered_data_nc <- data %>%
@@ -631,10 +623,22 @@ create_utility_visualizations <- function(data,
   # NC utility over time - all categories
   p_nc <- ggplot(filtered_data_nc, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_data_nc %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_nc$Year), 
+                                  max(filtered_data_nc$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends.pdf"), 
          plot = p_nc, width = 10, height = 6)
@@ -645,10 +649,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta <- ggplot(filtered_nc_n_wta, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta$Year), 
+                                  max(filtered_nc_n_wta$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta.pdf"), 
          plot = p_nc_n_wta, width = 10, height = 6)
@@ -659,10 +675,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi <- ggplot(filtered_nc_n_wta_wfi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi$Year), 
+                                  max(filtered_nc_n_wta_wfi$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi.pdf"), 
          plot = p_nc_n_wta_wfi, width = 10, height = 6)
@@ -673,10 +701,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi_hum <- ggplot(filtered_nc_n_wta_wfi_hum, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum.pdf"), 
          plot = p_nc_n_wta_wfi_hum, width = 10, height = 6)
@@ -687,10 +727,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi_hum_wtm <- ggplot(filtered_nc_n_wta_wfi_hum_wtm, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm, width = 10, height = 6)
@@ -701,10 +753,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi_hum_wtm_ffi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm_ffi, width = 10, height = 6)
@@ -715,10 +779,22 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi_hum_wtm_ffi_fch <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch, width = 10, height = 6)
@@ -729,31 +805,334 @@ create_utility_visualizations <- function(data,
   
   p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year) + 5)) +
     labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens, No w. birds)", 
          y = "Utility", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
   
-  ########## PREPARE FOR NET SERIES ##########
+  cat("NC utility plots saved to:", output_dir, "\n")
+}
+
+#' Create WR utility trend plots with progressive category exclusions
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_wr_utility_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values for WR utility
+  filtered_data_wr <- data %>%
+    filter(!is.na(WR_utility), !is.na(aliveatanytime))
+  
+  # WR utility over time - all categories
+  p_wr <- ggplot(filtered_data_wr, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_data_wr %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_wr$Year), 
+                                  max(filtered_data_wr$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
+         plot = p_wr, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods
+  filtered_wr_n_wta <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_wr_n_wta <- ggplot(filtered_wr_n_wta, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta$Year), 
+                                  max(filtered_wr_n_wta$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
+         plot = p_wr_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_wr_n_wta_wfi <- filtered_wr_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_wr_n_wta_wfi <- ggplot(filtered_wr_n_wta_wfi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi$Year), 
+                                  max(filtered_wr_n_wta_wfi$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
+         plot = p_wr_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees
+  filtered_wr_n_wta_wfi_fbe <- filtered_wr_n_wta_wfi %>% 
+    filter(Category != "Bees")
+  
+  p_wr_n_wta_wfi_fbe <- ggplot(filtered_wr_n_wta_wfi_fbe, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
+  filtered_wr_n_wta_wfi_fbe_ffi <- filtered_wr_n_wta_wfi_fbe %>% 
+    filter(Category != "Fish")
+  
+  p_wr_n_wta_wfi_fbe_ffi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens
+  filtered_wr_n_wta_wfi_fbe_ffi_fch <- filtered_wr_n_wta_wfi_fbe_ffi %>% 
+    filter(Category != "Chickens")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wild terrestrial mammals
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm <- filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
+    filter(Category != "Humans")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans, no wild birds
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
+    filter(Category != "Wild birds")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year) + 5)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
+  
+  cat("WR utility plots saved to:", output_dir, "\n")
+}
+
+#' Prepare data for net series calculations by extending time ranges
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving trend extension plots
+#' @param target_year_range Year range to extend data to (default: 1960:2019)
+#' @return Extended dataset suitable for net series calculations
+prepare_data_for_net_series <- function(data, 
+                                        output_dir = "visualizations",
+                                        target_year_range = 1960:2019) {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
   
   # Extend time range of animal categories for net series calculation
-  extended_data_for_net <- extend_animal_trends(data, target_year_range = 1960:2019)
+  cat("Extending animal trends for net series calculation...\n")
+  extended_data_for_net <- extend_animal_trends(data, target_year_range = target_year_range)
   
   # Create trend extension plots directory and sanity check
   extension_plots_dir <- file.path(output_dir, "trend_extension_plots")
   if(!dir.exists(extension_plots_dir)) {
     dir.create(extension_plots_dir, recursive = TRUE)
   }
+  
+  # Create trend extension plots for quality checking
+  cat("Creating trend extension plots for quality checking...\n")
   create_trend_extension_plots(data, extended_data_for_net, extension_plots_dir)
   
-  ########## NC NET UTILITY COMPARISON - 1960-2019 ##########
+  cat("Data preparation for net series complete. Extended data covers", 
+      min(target_year_range), "to", max(target_year_range), "\n")
+  cat("Trend extension plots saved to:", extension_plots_dir, "\n")
   
-  # Define the full time range for net series
-  min_year_constraint <- 1960
-  max_year_constraint <- 2019
+  return(extended_data_for_net)
+}
+
+#' Create NC net utility comparison plots with different category exclusions
+#' 
+#' @param extended_data_for_net Extended dataset covering full time range
+#' @param output_dir Directory for saving visualizations
+#' @param min_year_constraint Start year for analysis (default: 1960)
+#' @param max_year_constraint End year for analysis (default: 2019)
+#' @return NULL (saves plots to files)
+create_nc_net_utility_comparisons <- function(extended_data_for_net, 
+                                              output_dir = "visualizations",
+                                              min_year_constraint = 1960,
+                                              max_year_constraint = 2019) {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Define wild animal categories
+  wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
   
   # Filter extended data for NC utility calculations
   extended_nc_data <- extended_data_for_net %>%
@@ -777,20 +1156,27 @@ create_utility_visualizations <- function(data,
       Group == "without_humans" ~ "Without Humans"
     ))
   
-  # Create and save the plot
+  # Create and save the plot - all categories
   p_nc_comp <- ggplot(net_nc_comparison_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (With vs. Without Humans, 1960-2019)", 
+    geom_text(data = net_nc_comparison_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("NC Net Utility Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp.pdf"), 
          plot = p_nc_comp, width = 10, height = 6)
-
+  
   # NC net utility - no wild terrestrial arthropods, no wild fish
   extended_nc_n_wta_wfi <- extended_data_for_net %>%
     filter(!is.na(NC_utility), !is.na(aliveatanytime),
@@ -817,12 +1203,19 @@ create_utility_visualizations <- function(data,
   p_nc_comp_n_wta_wfi <- ggplot(net_nc_n_wta_wfi_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
+    geom_text(data = net_nc_n_wta_wfi_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("NC Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp_n_wta_wfi.pdf"), 
          plot = p_nc_comp_n_wta_wfi, width = 10, height = 6)
@@ -852,238 +1245,46 @@ create_utility_visualizations <- function(data,
   p_nc_comp_nw <- ggplot(net_nc_nw_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (No Wild Animals, 1960-2019)", 
+    geom_text(data = net_nc_nw_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("NC Net Utility Comparison (No Wild Animals, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp_nw.pdf"), 
          plot = p_nc_comp_nw, width = 10, height = 6)
   
+  cat("NC net utility comparison plots saved to:", output_dir, "\n")
+}
+
+
+#' Create WR net utility comparison plots with different category exclusions
+#' 
+#' @param extended_data_for_net Extended dataset covering full time range
+#' @param output_dir Directory for saving visualizations
+#' @param min_year_constraint Start year for analysis (default: 1960)
+#' @param max_year_constraint End year for analysis (default: 2019)
+#' @return NULL (saves plots to files)
+create_wr_net_utility_comparisons <- function(extended_data_for_net, 
+                                              output_dir = "visualizations",
+                                              min_year_constraint = 1960,
+                                              max_year_constraint = 2019) {
   
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
   
-  ########## NC TOT NET SERIES - 1960-2019 ##########
-  
-  # Filter extended data for NC_tot calculations
-  extended_nc_tot_data <- extended_data_for_net %>%
-    filter(!is.na(NC_tot), !is.na(aliveatanytime))
-  
-  # Calculate net NC_tot with and without humans (all categories included)
-  net_nc_tot_comparison_data <- extended_nc_tot_data %>% 
-    filter(Year >= min_year_constraint, 
-           Year <= max_year_constraint) %>%
-    group_by(Year) %>%
-    summarize(
-      with_humans = sum(NC_tot, na.rm = TRUE),
-      without_humans = sum(NC_tot[Category != "Humans"], na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    pivot_longer(cols = c(with_humans, without_humans), 
-                 names_to = "Group", 
-                 values_to = "NC_tot") %>%
-    mutate(Group = case_when(
-      Group == "with_humans" ~ "With Humans",
-      Group == "without_humans" ~ "Without Humans"
-    ))
-  
-  # Create and save the plot
-  p_nc_tot_comp <- ggplot(net_nc_tot_comparison_data, aes(x = Year, y = NC_tot, color = Group)) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    geom_text(data = net_nc_tot_comparison_data %>% 
-                group_by(Group) %>% 
-                filter(Year == max(Year)),
-              aes(label = Group), 
-              hjust = -0.1, 
-              size = 4, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
-    labs(title = "Net Total Neurons Comparison (With vs. Without Humans, 1960-2019)", 
-         y = "Net Total Neurons", 
-         x = "Year") +
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_net_tot_trends.pdf"), 
-         plot = p_nc_tot_comp, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish - NET SERIES with extended data
-  extended_nc_tot_n_wta_wfi <- extended_data_for_net %>%
-    filter(!is.na(NC_tot), !is.na(aliveatanytime),
-           Category != "Wild terrestrial arthropods",
-           Category != "Wild fish")
-  
-  # Calculate net NC_tot with and without humans for filtered categories (1960-2019)
-  net_nc_tot_n_wta_wfi_data <- extended_nc_tot_n_wta_wfi %>% 
-    filter(Year >= min_year_constraint, 
-           Year <= max_year_constraint) %>%
-    group_by(Year) %>%
-    summarize(
-      with_humans = sum(NC_tot, na.rm = TRUE),
-      without_humans = sum(NC_tot[Category != "Humans"], na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    pivot_longer(cols = c(with_humans, without_humans), 
-                 names_to = "Group", 
-                 values_to = "NC_tot") %>%
-    mutate(Group = case_when(
-      Group == "with_humans" ~ "With Humans",
-      Group == "without_humans" ~ "Without Humans"
-    ))
-  
-  # Create and save the net series plot
-  p_nc_tot_n_wta_wfi_net <- ggplot(net_nc_tot_n_wta_wfi_data, aes(x = Year, y = NC_tot, color = Group)) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    geom_text(data = net_nc_tot_n_wta_wfi_data %>% 
-                group_by(Group) %>% 
-                filter(Year == max(Year)),
-              aes(label = Group), 
-              hjust = -0.1, 
-              size = 4, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
-    labs(title = "Net Total Neurons Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
-         y = "Net Total Neurons", 
-         x = "Year") +
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_net_tot_trends_n_wta_wfi.pdf"), 
-         plot = p_nc_tot_n_wta_wfi_net, width = 10, height = 6)
-  
-  ########## WR UTILITY PLOTS ##########
-  
-  # Filter out rows with NA values for WR utility
-  filtered_data_wr <- data %>%
-    filter(!is.na(WR_utility), !is.na(aliveatanytime))
-  
-  # WR utility over time - all categories
-  p_wr <- ggplot(filtered_data_wr, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
-         plot = p_wr, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods
-  filtered_wr_n_wta <- filtered_data_wr %>% 
-    filter(Category != "Wild terrestrial arthropods")
-  
-  p_wr_n_wta <- ggplot(filtered_wr_n_wta, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
-         plot = p_wr_n_wta, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish
-  filtered_wr_n_wta_wfi <- filtered_wr_n_wta %>% 
-    filter(Category != "Wild fish")
-  
-  p_wr_n_wta_wfi <- ggplot(filtered_wr_n_wta_wfi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
-         plot = p_wr_n_wta_wfi, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no bees
-  filtered_wr_n_wta_wfi_fbe <- filtered_wr_n_wta_wfi %>% 
-    filter(Category != "Bees")
-  
-  p_wr_n_wta_wfi_fbe <- ggplot(filtered_wr_n_wta_wfi_fbe, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
-  filtered_wr_n_wta_wfi_fbe_ffi <- filtered_wr_n_wta_wfi_fbe %>% 
-    filter(Category != "Fish")
-  
-  p_wr_n_wta_wfi_fbe_ffi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens
-  filtered_wr_n_wta_wfi_fbe_ffi_fch <- filtered_wr_n_wta_wfi_fbe_ffi %>% 
-    filter(Category != "Chickens")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wild terrestrial mammals
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm <- filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
-    filter(Category != "Wild terrestrial mammals")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
-    filter(Category != "Humans")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans, no wild birds
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
-    filter(Category != "Wild birds")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
-         y = "Utility", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
-  
-  ########## WR NET UTILITY COMPARISON - 1960-2019 ##########
+  # Define wild animal categories
+  wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
   
   # Filter extended data for WR utility calculations
   extended_wr_data <- extended_data_for_net %>%
@@ -1107,16 +1308,23 @@ create_utility_visualizations <- function(data,
       Group == "without_humans" ~ "Without Humans"
     ))
   
-  # Create and save the plot
+  # Create and save the plot - all categories
   p_wr_comp <- ggplot(net_wr_comparison_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (With vs. Without Humans, 1960-2019)", 
+    geom_text(data = net_wr_comparison_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("WR Net Utility Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp.pdf"), 
          plot = p_wr_comp, width = 10, height = 6)
@@ -1147,12 +1355,19 @@ create_utility_visualizations <- function(data,
   p_wr_comp_n_wta_wfi <- ggplot(net_wr_n_wta_wfi_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
+    geom_text(data = net_wr_n_wta_wfi_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("WR Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi.pdf"), 
          plot = p_wr_comp_n_wta_wfi, width = 10, height = 6)
@@ -1184,12 +1399,19 @@ create_utility_visualizations <- function(data,
   p_wr_comp_n_wta_wfi_fbe <- ggplot(net_wr_n_wta_wfi_fbe_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees, 1960-2019)", 
+    geom_text(data = net_wr_n_wta_wfi_fbe_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi_fbe.pdf"), 
          plot = p_wr_comp_n_wta_wfi_fbe, width = 10, height = 6)
@@ -1219,43 +1441,193 @@ create_utility_visualizations <- function(data,
   p_wr_comp_nw <- ggplot(net_wr_nw_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No Wild Animals, 1960-2019)", 
+    geom_text(data = net_wr_nw_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("WR Net Utility Comparison (No Wild Animals, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
-         x = "Year",
-         color = "Dataset") +
+         x = "Year") +
     theme_minimal() +
-    xlim(min_year_constraint, max_year_constraint)
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_nw.pdf"), 
          plot = p_wr_comp_nw, width = 10, height = 6)
   
+  cat("WR net utility comparison plots saved to:", output_dir, "\n")
+}
+
+#' Create NC net total neurons comparison plots
+#' 
+#' @param extended_data_for_net Extended dataset covering full time range
+#' @param output_dir Directory for saving visualizations
+#' @param min_year_constraint Start year for analysis (default: 1960)
+#' @param max_year_constraint End year for analysis (default: 2019)
+#' @return NULL (saves plots to files)
+create_nc_net_tot_series <- function(extended_data_for_net, 
+                                     output_dir = "visualizations",
+                                     min_year_constraint = 1960,
+                                     max_year_constraint = 2019) {
   
-  ############ LABELLED DISAGGREGATED PLOTS: NC_tot, NC_u, WR_u ###########
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
   
-  # Filter out rows with NA values for NC_tot - all categories
+  # Filter extended data for NC_tot calculations
+  extended_nc_tot_data <- extended_data_for_net %>%
+    filter(!is.na(NC_tot), !is.na(aliveatanytime))
+  
+  # Calculate net NC_tot with and without humans (all categories included)
+  net_nc_tot_comparison_data <- extended_nc_tot_data %>% 
+    filter(Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      with_humans = sum(NC_tot, na.rm = TRUE),
+      without_humans = sum(NC_tot[Category != "Humans"], na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    pivot_longer(cols = c(with_humans, without_humans), 
+                 names_to = "Group", 
+                 values_to = "NC_tot") %>%
+    mutate(Group = case_when(
+      Group == "with_humans" ~ "With Humans",
+      Group == "without_humans" ~ "Without Humans"
+    ))
+  
+  # Create and save the plot - all categories
+  p_nc_tot_comp <- ggplot(net_nc_tot_comparison_data, aes(x = Year, y = NC_tot, color = Group)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = net_nc_tot_comparison_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("Net Total Neurons Comparison (With vs. Without Humans, ", min_year_constraint, "-", max_year_constraint, ")"), 
+         y = "Net Total Neurons", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_net_tot_trends.pdf"), 
+         plot = p_nc_tot_comp, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish - NET SERIES with extended data
+  extended_nc_tot_n_wta_wfi <- extended_data_for_net %>%
+    filter(!is.na(NC_tot), !is.na(aliveatanytime),
+           Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate net NC_tot with and without humans for filtered categories
+  net_nc_tot_n_wta_wfi_data <- extended_nc_tot_n_wta_wfi %>% 
+    filter(Year >= min_year_constraint, 
+           Year <= max_year_constraint) %>%
+    group_by(Year) %>%
+    summarize(
+      with_humans = sum(NC_tot, na.rm = TRUE),
+      without_humans = sum(NC_tot[Category != "Humans"], na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    pivot_longer(cols = c(with_humans, without_humans), 
+                 names_to = "Group", 
+                 values_to = "NC_tot") %>%
+    mutate(Group = case_when(
+      Group == "with_humans" ~ "With Humans",
+      Group == "without_humans" ~ "Without Humans"
+    ))
+  
+  # Create and save the net series plot - filtered categories
+  p_nc_tot_n_wta_wfi_net <- ggplot(net_nc_tot_n_wta_wfi_data, aes(x = Year, y = NC_tot, color = Group)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = net_nc_tot_n_wta_wfi_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
+    labs(title = paste0("Net Total Neurons Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
+         y = "Net Total Neurons", 
+         x = "Year") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_net_tot_trends_n_wta_wfi.pdf"), 
+         plot = p_nc_tot_n_wta_wfi_net, width = 10, height = 6)
+  
+  cat("NC net total neurons series plots saved to:", output_dir, "\n")
+}
+
+#' Create disaggregated plots with total lines for NC_tot, NC_utility, and WR_utility
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @param min_total_year Start year for total line calculation (default: 1990)
+#' @param max_total_year End year for total line calculation (default: 2017)
+#' @return NULL (saves plots to files)
+create_disaggregated_plots_with_totals <- function(data, 
+                                                   output_dir = "visualizations",
+                                                   min_total_year = 1990,
+                                                   max_total_year = 2017) {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values for each metric
   filtered_data_nc_tot <- data %>%
     filter(!is.na(NC_tot), !is.na(aliveatanytime))
   
-  # NC_tot over time - all categories
+  filtered_data_nc <- data %>%
+    filter(!is.na(NC_utility), !is.na(aliveatanytime))
+  
+  filtered_data_wr <- data %>%
+    filter(!is.na(WR_utility), !is.na(aliveatanytime))
+  
+  # NC_tot over time - all categories (basic plot without total line)
   p_nc_tot <- ggplot(filtered_data_nc_tot, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    geom_text(data = filtered_data_nc_tot %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_nc_tot$Year), 
+                                  max(filtered_data_nc_tot$Year) + 5)) +
     labs(title = "Total Neurons Over Time by Category", 
          y = "Total Neurons", 
          x = "Year") +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_tot_trends.pdf"), 
          plot = p_nc_tot, width = 10, height = 6)
   
-  # No wild terrestrial arthropods, no wild fish - individual categories with total line
+  # NC_tot: No wild terrestrial arthropods, no wild fish - individual categories with total line
   filtered_nc_tot_n_wta_wfi <- filtered_data_nc_tot %>% 
     filter(Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  # Calculate total across all displayed categories for 1990-2017
+  # Calculate total across all displayed categories for specified time range
   # time constraint is due to the total line needing to come from only available data
   total_nc_tot <- filtered_nc_tot_n_wta_wfi %>%
-    filter(Year >= 1990, Year <= 2017) %>%
+    filter(Year >= min_total_year, Year <= max_total_year) %>%
     group_by(Year) %>%
     summarize(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
     mutate(Category = "Total", Group = "Total")
@@ -1278,14 +1650,14 @@ create_utility_visualizations <- function(data,
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_with_total$Year), 
                                   max(plot_data_with_total$Year) + 5)) +
-    labs(title = "Labelled Total Neurons Over Time (No wt. arthropods, No w. fish)", 
+    labs(title = "Total Neurons Over Time (No wt. arthropods, No w. fish)", 
          y = "Total Neurons", 
          x = "Year") +
     # Remove the legend since we have direct labels
     theme_minimal() +
     theme(legend.position = "none")
   
-  ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi_label.pdf"), 
+  ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi.pdf"), 
          plot = p_nc_tot_n_wta_wfi, width = 10, height = 6)
   
   # NC utility - No wild terrestrial arthropods, no wild fish - individual categories with total line
@@ -1293,10 +1665,10 @@ create_utility_visualizations <- function(data,
     filter(Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  # Calculate total across all displayed categories for 1990-2017
+  # Calculate total across all displayed categories for specified time range
   # time constraint is due to the total line needing to come from only available data
   total_nc_utility <- filtered_nc_utility_n_wta_wfi %>%
-    filter(Year >= 1990, Year <= 2017) %>%
+    filter(Year >= min_total_year, Year <= max_total_year) %>%
     group_by(Year) %>%
     summarize(NC_utility = sum(NC_utility, na.rm = TRUE), .groups = "drop") %>%
     mutate(Category = "Total", Group = "Total")
@@ -1304,7 +1676,7 @@ create_utility_visualizations <- function(data,
   # Combine individual categories with total
   plot_data_nc_utility_with_total <- bind_rows(filtered_nc_utility_n_wta_wfi, total_nc_utility)
   
-  p_nc_utility_n_wta_wfi_label <- ggplot(plot_data_nc_utility_with_total, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+  p_nc_utility_n_wta_wfi <- ggplot(plot_data_nc_utility_with_total, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
     # Add labels at the end of each line
@@ -1319,25 +1691,25 @@ create_utility_visualizations <- function(data,
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_nc_utility_with_total$Year), 
                                   max(plot_data_nc_utility_with_total$Year) + 5)) +
-    labs(title = "Labelled Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
          y = "NC Utility", 
          x = "Year") +
     # Remove the legend since we have direct labels
     theme_minimal() +
     theme(legend.position = "none")
   
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_label.pdf"), 
-         plot = p_nc_utility_n_wta_wfi_label, width = 10, height = 6)
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_with_total.pdf"), 
+         plot = p_nc_utility_n_wta_wfi, width = 10, height = 6)
   
   # WR utility - No wild terrestrial arthropods, no wild fish - individual categories with total line
   filtered_wr_utility_n_wta_wfi <- filtered_data_wr %>% 
     filter(Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  # Calculate total across all displayed categories for 1990-2017
+  # Calculate total across all displayed categories for specified time range
   # time constraint is due to the total line needing to come from only available data
   total_wr_utility <- filtered_wr_utility_n_wta_wfi %>%
-    filter(Year >= 1990, Year <= 2017) %>%
+    filter(Year >= min_total_year, Year <= max_total_year) %>%
     group_by(Year) %>%
     summarize(WR_utility = sum(WR_utility, na.rm = TRUE), .groups = "drop") %>%
     mutate(Category = "Total", Group = "Total")
@@ -1345,7 +1717,7 @@ create_utility_visualizations <- function(data,
   # Combine individual categories with total
   plot_data_wr_utility_with_total <- bind_rows(filtered_wr_utility_n_wta_wfi, total_wr_utility)
   
-  p_wr_utility_n_wta_wfi_label <- ggplot(plot_data_wr_utility_with_total, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+  p_wr_utility_n_wta_wfi <- ggplot(plot_data_wr_utility_with_total, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
     # Add labels at the end of each line
@@ -1360,15 +1732,57 @@ create_utility_visualizations <- function(data,
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(plot_data_wr_utility_with_total$Year), 
                                   max(plot_data_wr_utility_with_total$Year) + 5)) +
-    labs(title = "Labelled Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
          y = "WR Utility", 
          x = "Year") +
     # Remove the legend since we have direct labels
     theme_minimal() +
     theme(legend.position = "none")
   
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_label.pdf"), 
-         plot = p_wr_utility_n_wta_wfi_label, width = 10, height = 6)
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_with_total.pdf"), 
+         plot = p_wr_utility_n_wta_wfi, width = 10, height = 6)
+  
+  cat("Disaggregated plots with totals saved to:", output_dir, "\n")
 }
 
 
+#' Create complete set of utility visualizations using factored functions
+#' 
+#' @param data The processed dataset
+#' @param net_series The net series data (not used in current implementation)
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_utility_visualizations <- function(data, 
+                                          net_series, 
+                                          output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  cat("Creating utility visualizations...\n")
+  
+  # 1. Create NC utility plots
+  create_nc_utility_plots(data, output_dir)
+  
+  # 2. Create WR utility plots  
+  create_wr_utility_plots(data, output_dir)
+  
+  # 3. Prepare data for net series
+  extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
+  
+  # 4. Create NC net utility comparisons
+  create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
+  
+  # 5. Create WR net utility comparisons
+  create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
+  
+  # 6. Create NC net total series
+  create_nc_net_tot_series(extended_data_for_net, output_dir)
+  
+  # 7. Create disaggregated plots with totals
+  create_disaggregated_plots_with_totals(data, output_dir)
+  
+  cat("All utility visualizations completed successfully!\n")
+}

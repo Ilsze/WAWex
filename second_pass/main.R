@@ -17,6 +17,6 @@ all_results <- run_all_welfare_method_combinations(
   human_data_path = "dat/world_bank/world_bank_pop_gdp_clean.xlsx",
   farmed_animal_data_path = "first_pass/calc_tseries.xlsx",
   wild_animal_data_path = "second_pass/wild_calc_tseries.xlsx",
-  output_base_dir = "third_pass/welfare_results",
+  output_base_dir = "fourth_pass/welfare_results",
   create_visualizations = TRUE
 )

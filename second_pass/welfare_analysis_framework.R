@@ -740,7 +740,7 @@ create_utility_visualizations <- function(data,
   ########## PREPARE FOR NET SERIES ##########
   
   # Extend time range of animal categories for net series calculation
-  extended_data_for_net <- extend_animal_trends(data, target_year_range = 1960:2023)
+  extended_data_for_net <- extend_animal_trends(data, target_year_range = 1960:2019)
   
   # Create trend extension plots directory and sanity check
   extension_plots_dir <- file.path(output_dir, "trend_extension_plots")
@@ -749,11 +749,11 @@ create_utility_visualizations <- function(data,
   }
   create_trend_extension_plots(data, extended_data_for_net, extension_plots_dir)
   
-  ########## NC NET UTILITY COMPARISON - 1960-2023, ALL CATEGORIES ##########
+  ########## NC NET UTILITY COMPARISON - 1960-2019, ALL CATEGORIES ##########
   
   # Define the full time range for net series
   min_year_constraint <- 1960
-  max_year_constraint <- 2023
+  max_year_constraint <- 2019
   
   # Filter extended data for NC utility calculations
   extended_nc_data <- extended_data_for_net %>%
@@ -781,7 +781,7 @@ create_utility_visualizations <- function(data,
   p_nc_comp <- ggplot(net_nc_comparison_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (With vs. Without Humans, 1960-2023)", 
+    labs(title = "NC Net Utility Comparison (With vs. Without Humans, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -817,7 +817,7 @@ create_utility_visualizations <- function(data,
   p_nc_comp_n_wta_wfi <- ggplot(net_nc_n_wta_wfi_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2023)", 
+    labs(title = "NC Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -852,7 +852,7 @@ create_utility_visualizations <- function(data,
   p_nc_comp_nw <- ggplot(net_nc_nw_data, aes(x = Year, y = NC_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "NC Net Utility Comparison (No Wild Animals, 1960-2023)", 
+    labs(title = "NC Net Utility Comparison (No Wild Animals, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -885,6 +885,7 @@ create_utility_visualizations <- function(data,
            Category != "Wild fish")
   
   # Calculate total across all displayed categories for 1990-2017
+  # time constraint is due to the total line needing to come from only available data
   total_nc_tot <- filtered_nc_tot_n_wta_wfi %>%
     filter(Year >= 1990, Year <= 2017) %>%
     group_by(Year) %>%
@@ -918,7 +919,7 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi.pdf"), 
          plot = p_nc_tot_n_wta_wfi, width = 10, height = 6)
   
-  ########## NC TOT NET SERIES - 1960-2023, ALL CATEGORIES ##########
+  ########## NC TOT NET SERIES - 1960-2019 ##########
   
   # Filter extended data for NC_tot calculations
   extended_nc_tot_data <- extended_data_for_net %>%
@@ -954,7 +955,7 @@ create_utility_visualizations <- function(data,
               size = 4, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
-    labs(title = "Net Total Neurons Comparison (With vs. Without Humans, 1960-2023)", 
+    labs(title = "Net Total Neurons Comparison (With vs. Without Humans, 1960-2019)", 
          y = "Net Total Neurons", 
          x = "Year") +
     theme_minimal() +
@@ -969,7 +970,7 @@ create_utility_visualizations <- function(data,
            Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  # Calculate net NC_tot with and without humans for filtered categories (1960-2023)
+  # Calculate net NC_tot with and without humans for filtered categories (1960-2019)
   net_nc_tot_n_wta_wfi_data <- extended_nc_tot_n_wta_wfi %>% 
     filter(Year >= min_year_constraint, 
            Year <= max_year_constraint) %>%
@@ -999,7 +1000,7 @@ create_utility_visualizations <- function(data,
               size = 4, 
               check_overlap = TRUE) +
     scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 3)) +
-    labs(title = "Net Total Neurons Comparison (No wt. arthropods, No w. fish, 1960-2023)", 
+    labs(title = "Net Total Neurons Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
          y = "Net Total Neurons", 
          x = "Year") +
     theme_minimal() +
@@ -1137,7 +1138,7 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
          plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
   
-  ########## WR NET UTILITY COMPARISON - 1960-2023 ##########
+  ########## WR NET UTILITY COMPARISON - 1960-2019 ##########
   
   # Filter extended data for WR utility calculations
   extended_wr_data <- extended_data_for_net %>%
@@ -1165,7 +1166,7 @@ create_utility_visualizations <- function(data,
   p_wr_comp <- ggplot(net_wr_comparison_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (With vs. Without Humans, 1960-2023)", 
+    labs(title = "WR Net Utility Comparison (With vs. Without Humans, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -1201,7 +1202,7 @@ create_utility_visualizations <- function(data,
   p_wr_comp_n_wta_wfi <- ggplot(net_wr_n_wta_wfi_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2023)", 
+    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -1238,7 +1239,7 @@ create_utility_visualizations <- function(data,
   p_wr_comp_n_wta_wfi_fbe <- ggplot(net_wr_n_wta_wfi_fbe_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees, 1960-2023)", 
+    labs(title = "WR Net Utility Comparison (No wt. arthropods, No w. fish, No bees, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +
@@ -1273,7 +1274,7 @@ create_utility_visualizations <- function(data,
   p_wr_comp_nw <- ggplot(net_wr_nw_data, aes(x = Year, y = WR_utility, color = Group)) +
     geom_line() +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
-    labs(title = "WR Net Utility Comparison (No Wild Animals, 1960-2023)", 
+    labs(title = "WR Net Utility Comparison (No Wild Animals, 1960-2019)", 
          y = "Net Utility", 
          x = "Year",
          color = "Dataset") +

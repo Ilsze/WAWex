@@ -18,9 +18,9 @@ source("second_pass/welfare_analysis_framework.R")
 presentation_config <- list(
   create_presentation_images = TRUE,
   image_format = "png",
-  image_width = 12,
-  image_height = 8,
-  image_dpi = 300,
+  image_width = 12,      # Keep reasonable size
+  image_height = 8,      # Keep reasonable size
+  image_dpi = 300,       # Keep high DPI for crisp text
   
   # OPTION 1: Specific files (your current need)
   specific_files = list(
@@ -30,8 +30,8 @@ presentation_config <- list(
     "NC_net_tot_trends_n_wta_wfi.pdf" = "A4",
     "NC_net_utility_comp.pdf" = "B1",
     "NC_utility_trends.pdf" = "B2",
-    "NC_net_utility_comp_n_wta_wfi.pdf" = "B3",
-    "NC_utility_trends_n_wta_wfi.pdf" = "B4",
+    "NC_utility_trends_n_wta_wfi.pdf" = "B3",
+    "NC_net_utility_comp_n_wta_wfi.pdf" = "B4",
     "NC_net_utility_comp_nw.pdf" = "B5",
     "WR_net_utility_comp.pdf" = "C1",
     "WR_utility_trends.pdf" = "C2",

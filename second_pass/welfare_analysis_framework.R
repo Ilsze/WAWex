@@ -6,6 +6,87 @@ library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)
 
+#' Universal plot saving function that handles all output formats automatically
+#' 
+#' @param plot_object The ggplot object
+#' @param filename Base filename (without extension)
+#' @param output_dir Output directory
+#' @param presentation_config Global presentation configuration
+#' @param pdf_width Width for PDF
+#' @param pdf_height Height for PDF
+#' @return NULL (saves files)
+universal_ggsave <- function(plot_object, filename, output_dir, 
+                             presentation_config = NULL,
+                             pdf_width = 10, pdf_height = 6) {
+  
+  # Always save the PDF (original behavior)
+  pdf_path <- file.path(output_dir, paste0(filename, ".pdf"))
+  ggsave(pdf_path, plot = plot_object, width = pdf_width, height = pdf_height)
+  
+  # Check if presentation images are enabled
+  if(!is.null(presentation_config) && 
+     isTRUE(presentation_config$create_presentation_images)) {
+    
+    # Create presentation directory
+    presentation_dir <- file.path(output_dir, "presentation_images")
+    if(!dir.exists(presentation_dir)) {
+      dir.create(presentation_dir, recursive = TRUE)
+    }
+    
+    # Check if this specific file should get special treatment
+    pdf_filename <- paste0(filename, ".pdf")
+    
+    # Apply filters to determine if this plot should be saved as presentation image
+    should_save <- FALSE
+    prefix <- ""
+    
+    # Method 1: Specific filename mapping (your current need)
+    if(!is.null(presentation_config$specific_files) && 
+       pdf_filename %in% names(presentation_config$specific_files)) {
+      should_save <- TRUE
+      prefix <- paste0(presentation_config$specific_files[[pdf_filename]], "_")
+    }
+    
+    # Method 2: Pattern matching (for future flexibility)
+    if(!is.null(presentation_config$filename_patterns)) {
+      for(pattern in presentation_config$filename_patterns) {
+        if(grepl(pattern$regex, filename)) {
+          should_save <- TRUE
+          if(!is.null(pattern$prefix)) {
+            prefix <- paste0(pattern$prefix, "_")
+          }
+          break
+        }
+      }
+    }
+    
+    # Method 3: Save all (if no specific filters defined)
+    if(is.null(presentation_config$specific_files) && 
+       is.null(presentation_config$filename_patterns) &&
+       isTRUE(presentation_config$save_all)) {
+      should_save <- TRUE
+    }
+    
+    # Save presentation image if criteria met
+    if(should_save) {
+      image_ext <- presentation_config$image_format %||% "png"
+      output_filename <- paste0(prefix, filename, ".", image_ext)
+      output_path <- file.path(presentation_dir, output_filename)
+      
+      ggsave(
+        filename = output_path,
+        plot = plot_object,
+        width = presentation_config$image_width %||% 12,
+        height = presentation_config$image_height %||% 8,
+        dpi = presentation_config$image_dpi %||% 300,
+        device = image_ext
+      )
+      
+      cat("Presentation image saved:", output_filename, "\n")
+    }
+  }
+}
+
 #' Main function to process and analyze welfare time series data
 #' 
 #' @param data_path Path to the input time series data

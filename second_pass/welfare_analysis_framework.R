@@ -749,7 +749,7 @@ create_utility_visualizations <- function(data,
   }
   create_trend_extension_plots(data, extended_data_for_net, extension_plots_dir)
   
-  ########## NC NET UTILITY COMPARISON - 1960-2019, ALL CATEGORIES ##########
+  ########## NC NET UTILITY COMPARISON - 1960-2019 ##########
   
   # Define the full time range for net series
   min_year_constraint <- 1960
@@ -862,62 +862,7 @@ create_utility_visualizations <- function(data,
   ggsave(file.path(output_dir, "NC_net_utility_comp_nw.pdf"), 
          plot = p_nc_comp_nw, width = 10, height = 6)
   
-  ############ NC TOTAL PLOTS ###########
   
-  # Filter out rows with NA values for NC_tot - all categories
-  filtered_data_nc_tot <- data %>%
-    filter(!is.na(NC_tot), !is.na(aliveatanytime))
-  
-  # NC_tot over time - all categories
-  p_nc_tot <- ggplot(filtered_data_nc_tot, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    labs(title = "Total Neurons Over Time by Category", 
-         y = "Total Neurons", 
-         x = "Year") +
-    theme_minimal()
-  
-  ggsave(file.path(output_dir, "NC_tot_trends.pdf"), 
-         plot = p_nc_tot, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish - individual categories with total line
-  filtered_nc_tot_n_wta_wfi <- filtered_data_nc_tot %>% 
-    filter(Category != "Wild terrestrial arthropods",
-           Category != "Wild fish")
-  
-  # Calculate total across all displayed categories for 1990-2017
-  # time constraint is due to the total line needing to come from only available data
-  total_nc_tot <- filtered_nc_tot_n_wta_wfi %>%
-    filter(Year >= 1990, Year <= 2017) %>%
-    group_by(Year) %>%
-    summarize(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
-    mutate(Category = "Total", Group = "Total")
-  
-  # Combine individual categories with total
-  plot_data_with_total <- bind_rows(filtered_nc_tot_n_wta_wfi, total_nc_tot)
-  
-  p_nc_tot_n_wta_wfi <- ggplot(plot_data_with_total, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
-    geom_line() +
-    # Add labels at the end of each line
-    geom_text(data = plot_data_with_total %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 3, 
-              check_overlap = TRUE) +
-    # Extend x-axis to make room for labels
-    scale_x_continuous(limits = c(min(plot_data_with_total$Year), 
-                                  max(plot_data_with_total$Year) + 5)) +
-    labs(title = "Total Neurons Over Time (No wt. arthropods, No w. fish)", 
-         y = "Total Neurons", 
-         x = "Year") +
-    # Remove the legend since we have direct labels
-    theme_minimal() +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi.pdf"), 
-         plot = p_nc_tot_n_wta_wfi, width = 10, height = 6)
   
   ########## NC TOT NET SERIES - 1960-2019 ##########
   
@@ -1283,4 +1228,147 @@ create_utility_visualizations <- function(data,
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_nw.pdf"), 
          plot = p_wr_comp_nw, width = 10, height = 6)
+  
+  
+  ############ LABELLED DISAGGREGATED PLOTS: NC_tot, NC_u, WR_u ###########
+  
+  # Filter out rows with NA values for NC_tot - all categories
+  filtered_data_nc_tot <- data %>%
+    filter(!is.na(NC_tot), !is.na(aliveatanytime))
+  
+  # NC_tot over time - all categories
+  p_nc_tot <- ggplot(filtered_data_nc_tot, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    labs(title = "Total Neurons Over Time by Category", 
+         y = "Total Neurons", 
+         x = "Year") +
+    theme_minimal()
+  
+  ggsave(file.path(output_dir, "NC_tot_trends.pdf"), 
+         plot = p_nc_tot, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish - individual categories with total line
+  filtered_nc_tot_n_wta_wfi <- filtered_data_nc_tot %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate total across all displayed categories for 1990-2017
+  # time constraint is due to the total line needing to come from only available data
+  total_nc_tot <- filtered_nc_tot_n_wta_wfi %>%
+    filter(Year >= 1990, Year <= 2017) %>%
+    group_by(Year) %>%
+    summarize(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    mutate(Category = "Total", Group = "Total")
+  
+  # Combine individual categories with total
+  plot_data_with_total <- bind_rows(filtered_nc_tot_n_wta_wfi, total_nc_tot)
+  
+  p_nc_tot_n_wta_wfi <- ggplot(plot_data_with_total, aes(x = Year, y = NC_tot, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    # Add labels at the end of each line
+    geom_text(data = plot_data_with_total %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(plot_data_with_total$Year), 
+                                  max(plot_data_with_total$Year) + 5)) +
+    labs(title = "Labelled Total Neurons Over Time (No wt. arthropods, No w. fish)", 
+         y = "Total Neurons", 
+         x = "Year") +
+    # Remove the legend since we have direct labels
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_tot_trends_n_wta_wfi_label.pdf"), 
+         plot = p_nc_tot_n_wta_wfi, width = 10, height = 6)
+  
+  # NC utility - No wild terrestrial arthropods, no wild fish - individual categories with total line
+  filtered_nc_utility_n_wta_wfi <- filtered_data_nc %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate total across all displayed categories for 1990-2017
+  # time constraint is due to the total line needing to come from only available data
+  total_nc_utility <- filtered_nc_utility_n_wta_wfi %>%
+    filter(Year >= 1990, Year <= 2017) %>%
+    group_by(Year) %>%
+    summarize(NC_utility = sum(NC_utility, na.rm = TRUE), .groups = "drop") %>%
+    mutate(Category = "Total", Group = "Total")
+  
+  # Combine individual categories with total
+  plot_data_nc_utility_with_total <- bind_rows(filtered_nc_utility_n_wta_wfi, total_nc_utility)
+  
+  p_nc_utility_n_wta_wfi_label <- ggplot(plot_data_nc_utility_with_total, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    # Add labels at the end of each line
+    geom_text(data = plot_data_nc_utility_with_total %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(plot_data_nc_utility_with_total$Year), 
+                                  max(plot_data_nc_utility_with_total$Year) + 5)) +
+    labs(title = "Labelled Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
+         y = "NC Utility", 
+         x = "Year") +
+    # Remove the legend since we have direct labels
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_label.pdf"), 
+         plot = p_nc_utility_n_wta_wfi_label, width = 10, height = 6)
+  
+  # WR utility - No wild terrestrial arthropods, no wild fish - individual categories with total line
+  filtered_wr_utility_n_wta_wfi <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods",
+           Category != "Wild fish")
+  
+  # Calculate total across all displayed categories for 1990-2017
+  # time constraint is due to the total line needing to come from only available data
+  total_wr_utility <- filtered_wr_utility_n_wta_wfi %>%
+    filter(Year >= 1990, Year <= 2017) %>%
+    group_by(Year) %>%
+    summarize(WR_utility = sum(WR_utility, na.rm = TRUE), .groups = "drop") %>%
+    mutate(Category = "Total", Group = "Total")
+  
+  # Combine individual categories with total
+  plot_data_wr_utility_with_total <- bind_rows(filtered_wr_utility_n_wta_wfi, total_wr_utility)
+  
+  p_wr_utility_n_wta_wfi_label <- ggplot(plot_data_wr_utility_with_total, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line() +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 0.5) +
+    # Add labels at the end of each line
+    geom_text(data = plot_data_wr_utility_with_total %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = TRUE) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(plot_data_wr_utility_with_total$Year), 
+                                  max(plot_data_wr_utility_with_total$Year) + 5)) +
+    labs(title = "Labelled Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+         y = "WR Utility", 
+         x = "Year") +
+    # Remove the legend since we have direct labels
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_label.pdf"), 
+         plot = p_wr_utility_n_wta_wfi_label, width = 10, height = 6)
 }
+
+

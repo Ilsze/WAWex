@@ -31,14 +31,21 @@ presentation_config <- list(
     "NC_net_utility_comp.pdf" = "B1",
     "NC_utility_trends.pdf" = "B2",
     "NC_utility_trends_n_wta_wfi.pdf" = "B3",
+    "NC_utility_trends_n_wta_wfi_with_total.pdf" = "B3.5",
     "NC_net_utility_comp_n_wta_wfi.pdf" = "B4",
     "NC_net_utility_comp_nw.pdf" = "B5",
     "WR_net_utility_comp.pdf" = "C1",
     "WR_utility_trends.pdf" = "C2",
     "WR_utility_trends_n_wta_wfi.pdf" = "C3",
+    "WR_utility_trends_n_wta_wfi_with_total.pdf" = "C3.5",
     "WR_net_utility_comp_n_wta_wfi.pdf" = "C4",
     "WR_net_utility_comp_n_wta_wfi_fbe.pdf" = "C5",
-    "WR_net_utility_comp_nw.pdf" = "C6"
+    "WR_net_utility_comp_nw.pdf" = "C6",
+    "WR_utility_trends_n_wta_wfi_fbe.pdf" = "D1",
+    "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf" = "D2",
+    "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf" = "D3",
+    "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf" = "D4",
+    "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf" = "D5"
   )
   
   # OPTION 2: Pattern-based (for future flexibility)

@@ -464,9 +464,9 @@ calculate_correlations_elasticities <- function(data) {
 }
 
 #' Calculate correlations and elasticities between human and aggregated animal populations/utilities
-#' for both WR and NC methods using extended data with three different animal groupings
+#' for both WR and NC methods using extended data with four different animal groupings
 #' 
-#' @return Dataframe with correlations and elasticities for tot, wild (w), and farmed (f) groupings
+#' @return Dataframe with correlations and elasticities for tot (all), tot_excl (excluding wild fish & arthropods), wild (w), and farmed (f) groupings
 calculate_correlations_elasticities_extended <- function() {
   
   # Read the extended data
@@ -474,37 +474,41 @@ calculate_correlations_elasticities_extended <- function() {
   
   # Define category groups
   excluded_categories <- c("Wild fish", "Wild terrestrial arthropods")
-  wild_categories <- c("Wild birds", "Wild terrestrial mammals")
+  all_wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
+  wild_categories_not_excluded <- c("Wild birds", "Wild terrestrial mammals")
   
-  # Get all categories in tot (everything except excluded and humans)
-  tot_categories <- setdiff(unique(extended_data$Category), c("Humans", excluded_categories))
+  # Get all categories for tot (everything except humans - NO exclusions)
+  all_animal_categories <- setdiff(unique(extended_data$Category), "Humans")
   
-  # Get farmed categories (tot minus wild)
-  farmed_categories <- setdiff(tot_categories, wild_categories)
+  # Get tot_excl categories (everything except excluded wild categories and humans)
+  tot_excl_categories <- setdiff(unique(extended_data$Category), c("Humans", excluded_categories))
   
-  # Initialize results dataframe with 3 rows and clean column names
+  # Get farmed categories (everything that's not wild and not human)
+  farmed_categories <- setdiff(unique(extended_data$Category), c("Humans", all_wild_categories))
+  
+  # Initialize results dataframe with 4 rows and clean column names
   cor_and_elasticity_extended <- data.frame(
-    Group = c("tot", "w", "f"),
+    Group = c("tot", "tot_excl", "w", "f"),
     
     # Population metrics (2 columns)
-    cor_pop = numeric(3), 
-    e_pop = numeric(3),
+    cor_pop = numeric(4), 
+    e_pop = numeric(4),
     
     # WR utility metrics (6 columns)
-    WR_cor_u = numeric(3), 
-    WR_cor_hpop_au = numeric(3), 
-    WR_cor_hu_apop = numeric(3),
-    WR_e_u = numeric(3), 
-    WR_e_hpop_au = numeric(3), 
-    WR_e_hu_apop = numeric(3),
+    WR_cor_u = numeric(4), 
+    WR_cor_hpop_au = numeric(4), 
+    WR_cor_hu_apop = numeric(4),
+    WR_e_u = numeric(4), 
+    WR_e_hpop_au = numeric(4), 
+    WR_e_hu_apop = numeric(4),
     
     # NC utility metrics (6 columns)
-    NC_cor_u = numeric(3), 
-    NC_cor_hpop_au = numeric(3), 
-    NC_cor_hu_apop = numeric(3),
-    NC_e_u = numeric(3), 
-    NC_e_hpop_au = numeric(3), 
-    NC_e_hu_apop = numeric(3),
+    NC_cor_u = numeric(4), 
+    NC_cor_hpop_au = numeric(4), 
+    NC_cor_hu_apop = numeric(4),
+    NC_e_u = numeric(4), 
+    NC_e_hpop_au = numeric(4), 
+    NC_e_hu_apop = numeric(4),
     
     stringsAsFactors = FALSE
   )
@@ -514,16 +518,17 @@ calculate_correlations_elasticities_extended <- function() {
     filter(Category == "Humans") %>% 
     select(Year, aliveatanytime, WR_utility, NC_utility)
   
-  # Define the three groupings
+  # Define the four groupings
   groupings <- list(
-    tot = tot_categories,
-    w = wild_categories,
+    tot = all_animal_categories,
+    tot_excl = tot_excl_categories,
+    w = all_wild_categories,
     f = farmed_categories
   )
   
   # Calculate correlations and elasticities for each grouping
-  for (i in 1:3) {
-    group_name <- c("tot", "w", "f")[i]
+  for (i in 1:4) {
+    group_name <- c("tot", "tot_excl", "w", "f")[i]
     categories_in_group <- groupings[[group_name]]
     
     # Aggregate animal data for this grouping by year
@@ -638,8 +643,8 @@ calculate_correlations_elasticities_extended <- function() {
       tryCatch(coef(lm(animal_nc_u_trunc ~ human_nc_u_trunc))[2], error = function(e) NA)
     } else NA
     
-    nc_e_hpop_au <- if(!all(is.na(human_pop_trunc)) && !all(is.na(animal_nc_u_trunc)) && 
-                       sum(!is.na(human_pop_trunc) & !is.na(animal_nc_u_trunc)) > 1) {
+    nc_e_hpop_au <- if(!all(is.na(human_nc_u_trunc)) && !all(is.na(animal_nc_u_trunc)) && 
+                       sum(!is.na(human_nc_u_trunc) & !is.na(animal_nc_u_trunc)) > 1) {
       tryCatch(coef(lm(animal_nc_u_trunc ~ human_pop_trunc))[2], error = function(e) NA)
     } else NA
     
@@ -2037,6 +2042,16 @@ create_disaggregated_plots_with_totals <- function(data,
   
   cat("Disaggregated plots with totals saved to:", output_dir, "\n")
 }
+
+#' Create time series with total lines for human population and disaggregated n_wta_wfi plots
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_mixed_series <- function(data, output_dir = "visualisations") {
+  
+}
+
 
 
 #' Create complete set of utility visualizations using factored functions

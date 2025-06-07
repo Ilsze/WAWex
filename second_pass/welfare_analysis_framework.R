@@ -287,7 +287,8 @@ calculate_net_series <- function(data) {
   return(net_series)
 }
 
-#' Calculate correlations and elasticities between human and animal populations/utilities
+#' Create cor_and_elas for disaggregated groups. 
+#' In other words, calculate correlations and elasticities between human and animal populations/utilities
 #' for both WR and NC methods in a single combined dataframe
 #' 
 #' @param data The input dataset
@@ -463,10 +464,11 @@ calculate_correlations_elasticities <- function(data) {
   return(cor_and_elasticity)
 }
 
-#' Calculate correlations and elasticities between human and aggregated animal populations/utilities
+#' Create cor_and_elas_extended, which is cor_and elas for aggregated groups. 
+#' In other words, calculate correlations and elasticities between human and aggregated animal populations/utilities
 #' for both WR and NC methods using extended data with four different animal groupings
 #' 
-#' @return Dataframe with correlations and elasticities for tot (all), tot_excl (excluding wild fish & arthropods), wild (w), and farmed (f) groupings
+#' @return Dataframe with correlations and elasticities for tot (all including humans), tot_non_human (all animals excluding humans), wild (w), and farmed (f) groupings
 calculate_correlations_elasticities_extended <- function() {
   
   # Read the extended data
@@ -477,18 +479,18 @@ calculate_correlations_elasticities_extended <- function() {
   all_wild_categories <- c("Wild birds", "Wild terrestrial mammals", "Wild fish", "Wild terrestrial arthropods")
   wild_categories_not_excluded <- c("Wild birds", "Wild terrestrial mammals")
   
-  # Get all categories for tot (everything except humans - NO exclusions)
-  all_animal_categories <- setdiff(unique(extended_data$Category), "Humans")
+  # Get all categories for tot (everything INCLUDING humans)
+  all_categories_including_humans <- unique(extended_data$Category)
   
-  # Get tot_excl categories (everything except excluded wild categories and humans)
-  tot_excl_categories <- setdiff(unique(extended_data$Category), c("Humans", excluded_categories))
+  # Get tot_non_human categories (everything except excluded wild categories and humans)
+  tot_non_human_categories <- setdiff(unique(extended_data$Category), c("Humans", excluded_categories))
   
   # Get farmed categories (everything that's not wild and not human)
   farmed_categories <- setdiff(unique(extended_data$Category), c("Humans", all_wild_categories))
   
   # Initialize results dataframe with 4 rows and clean column names
   cor_and_elasticity_extended <- data.frame(
-    Group = c("tot", "tot_excl", "w", "f"),
+    Group = c("tot", "tot_non_human", "w", "f"),
     
     # Population metrics (2 columns)
     cor_pop = numeric(4), 
@@ -520,29 +522,43 @@ calculate_correlations_elasticities_extended <- function() {
   
   # Define the four groupings
   groupings <- list(
-    tot = all_animal_categories,
-    tot_excl = tot_excl_categories,
-    w = all_wild_categories,
+    tot = all_categories_including_humans,  # NEW: includes humans
+    tot_non_human = tot_non_human_categories,  # RENAMED: was "tot_excl"
+    w = all_wild_categories,  # CHANGED: now includes all wild (fish + arthropods)
     f = farmed_categories
   )
   
   # Calculate correlations and elasticities for each grouping
   for (i in 1:4) {
-    group_name <- c("tot", "tot_excl", "w", "f")[i]
+    group_name <- c("tot", "tot_non_human", "w", "f")[i]
     categories_in_group <- groupings[[group_name]]
     
-    # Aggregate animal data for this grouping by year
-    animal_agg <- extended_data %>%
-      filter(Category %in% categories_in_group) %>%
-      group_by(Year) %>%
-      summarize(
-        agg_population = sum(aliveatanytime, na.rm = TRUE),
-        agg_WR_utility = sum(WR_utility, na.rm = TRUE),
-        agg_NC_utility = sum(NC_utility, na.rm = TRUE),
-        .groups = "drop"
-      )
+    # Aggregate data for this grouping by year
+    if(group_name == "tot") {
+      # For tot group, aggregate ALL categories (including humans)
+      animal_agg <- extended_data %>%
+        filter(Category %in% categories_in_group) %>%
+        group_by(Year) %>%
+        summarize(
+          agg_population = sum(aliveatanytime, na.rm = TRUE),
+          agg_WR_utility = sum(WR_utility, na.rm = TRUE),
+          agg_NC_utility = sum(NC_utility, na.rm = TRUE),
+          .groups = "drop"
+        )
+    } else {
+      # For other groups, aggregate only non-human categories
+      animal_agg <- extended_data %>%
+        filter(Category %in% categories_in_group) %>%
+        group_by(Year) %>%
+        summarize(
+          agg_population = sum(aliveatanytime, na.rm = TRUE),
+          agg_WR_utility = sum(WR_utility, na.rm = TRUE),
+          agg_NC_utility = sum(NC_utility, na.rm = TRUE),
+          .groups = "drop"
+        )
+    }
     
-    # Find overlapping years between humans and aggregated animals
+    # Find overlapping years between humans and aggregated data
     min_year <- max(min(animal_agg$Year), min(human_vec$Year), na.rm = TRUE)
     max_year <- min(max(animal_agg$Year), max(human_vec$Year), na.rm = TRUE)
     
@@ -559,7 +575,7 @@ calculate_correlations_elasticities_extended <- function() {
       filter(Year >= min_year & Year <= max_year) %>%
       pull(NC_utility)
     
-    # Get aggregated animal vectors for overlapping period
+    # Get aggregated vectors for overlapping period
     animal_pop_trunc <- animal_agg %>%
       filter(Year >= min_year & Year <= max_year) %>%
       pull(agg_population)

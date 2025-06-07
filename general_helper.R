@@ -324,8 +324,8 @@ quick_overview <- function(file_path) {
 # quick_overview("second_pass/welfare_analysis_framework.R")
 
 # Detailed console output with documentation
-# create_function_overview("second_pass/welfare_analysis_framework.R", 
-#                          output_format = "console", 
+# create_function_overview("second_pass/welfare_analysis_framework.R",
+#                          output_format = "console",
 #                          include_roxygen = TRUE)
 
 # Generate HTML overview

@@ -1502,16 +1502,18 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
            Year <= max_year_constraint) %>%
     group_by(Year) %>%
     summarize(
-      with_humans = sum(NC_utility, na.rm = TRUE),
-      without_humans = sum(NC_utility[Category != "Humans"], na.rm = TRUE),
+      human_utility = sum(NC_utility[Category == "Humans"], na.rm = TRUE),
+      non_human_utility = sum(NC_utility[Category != "Humans"], na.rm = TRUE),
+      total = sum(NC_utility, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    pivot_longer(cols = c(with_humans, without_humans), 
+    pivot_longer(cols = c(human_utility, non_human_utility, total), 
                  names_to = "Group", 
                  values_to = "NC_utility") %>%
     mutate(Group = case_when(
-      Group == "with_humans" ~ "With Humans",
-      Group == "without_humans" ~ "Without Humans"
+      Group == "human_utility" ~ "Human Utility",
+      Group == "non_human_utility" ~ "Non-Human Utility",
+      Group == "total" ~ "Total"
     ))
   
   p_nc_comp_n_wta_wfi <- ggplot(net_nc_n_wta_wfi_data, aes(x = Year, y = NC_utility, color = Group)) +
@@ -1522,13 +1524,13 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
                 filter(Year == max(Year)),
               aes(label = Group), 
               hjust = -0.1, 
-              size = 4, 
+              size = 6, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 10)) +
     labs(title = paste0("NC Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "NC_net_utility_comp_n_wta_wfi.pdf"), 
@@ -1649,21 +1651,23 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
            Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  net_wr_n_wta_wfi_data <- extended_wr_n_wta_wfi %>% 
+  net_wr_n_wta_wfi_datanet_wr_n_wta_wfi_data <- extended_wr_n_wta_wfi %>% 
     filter(Year >= min_year_constraint, 
            Year <= max_year_constraint) %>%
     group_by(Year) %>%
     summarize(
-      with_humans = sum(WR_utility, na.rm = TRUE),
-      without_humans = sum(WR_utility[Category != "Humans"], na.rm = TRUE),
+      human_utility = sum(WR_utility[Category == "Humans"], na.rm = TRUE),
+      non_human_utility = sum(WR_utility[Category != "Humans"], na.rm = TRUE),
+      total = sum(WR_utility, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    pivot_longer(cols = c(with_humans, without_humans), 
+    pivot_longer(cols = c(human_utility, non_human_utility, total), 
                  names_to = "Group", 
                  values_to = "WR_utility") %>%
     mutate(Group = case_when(
-      Group == "with_humans" ~ "With Humans",
-      Group == "without_humans" ~ "Without Humans"
+      Group == "human_utility" ~ "Human Utility",
+      Group == "non_human_utility" ~ "Non-Human Utility",
+      Group == "total" ~ "Total"
     ))
   
   p_wr_comp_n_wta_wfi <- ggplot(net_wr_n_wta_wfi_data, aes(x = Year, y = WR_utility, color = Group)) +
@@ -1674,13 +1678,13 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
                 filter(Year == max(Year)),
               aes(label = Group), 
               hjust = -0.1, 
-              size = 4, 
+              size = 6, 
               check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 6)) +
+    scale_x_continuous(limits = c(min_year_constraint, max_year_constraint + 10)) +
     labs(title = paste0("WR Net Utility Comparison (No wt. arthropods, No w. fish, ", min_year_constraint, "-", max_year_constraint, ")"), 
          y = "Net Utility", 
          x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
     theme(legend.position = "none")
   
   ggsave(file.path(output_dir, "WR_net_utility_comp_n_wta_wfi.pdf"), 

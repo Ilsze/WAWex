@@ -182,14 +182,16 @@ generate_wild_animal_dataset <- function(output_file = NULL,
     Category = "Wild fish",
     stringsAsFactors = FALSE
   ) %>%
-    mutate(aliveatanytime = fish_reference_count)
+    #bit on the right is if we want to assume 10% decline
+    mutate(aliveatanytime = fish_reference_count) #*(2700-year)/689)
   
   wild_arthropods_df <- data.frame(
     Year = other_wild_years,
     Category = "Wild terrestrial arthropods",
     stringsAsFactors = FALSE
   ) %>%
-    mutate(aliveatanytime = t_arthropod_reference_count)
+    #numbers came from working things out by hand
+    mutate(aliveatanytime = t_arthropod_reference_count*(2700 - Year)/721)
   
   # Combine all dataframes
   wild_animals_df <- bind_rows(

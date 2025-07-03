@@ -4,7 +4,8 @@
 
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
-       stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)
+       stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
+       patchwork, hrbrthemes, scales)
 
 #' Universal plot saving function that handles all output formats automatically
 #' 
@@ -725,8 +726,488 @@ calculate_factor_changes <- function(data) {
 
 
 
+
+#' Create NC utility trend plots with progressive category exclusions
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_nc_utility_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values for NC utility
+  filtered_data_nc <- data %>%
+    filter(!is.na(NC_utility), !is.na(aliveatanytime))
+  
+  # NC utility over time - all categories
+  p_nc <- ggplot(filtered_data_nc, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_data_nc %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_nc$Year), 
+                                  max(filtered_data_nc$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends.pdf"), 
+         plot = p_nc, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods
+  filtered_nc_n_wta <- filtered_data_nc %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_nc_n_wta <- ggplot(filtered_nc_n_wta, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta$Year), 
+                                  max(filtered_nc_n_wta$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta.pdf"), 
+         plot = p_nc_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_nc_n_wta_wfi <- filtered_nc_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_nc_n_wta_wfi <- ggplot(filtered_nc_n_wta_wfi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi$Year), 
+                                  max(filtered_nc_n_wta_wfi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi.pdf"), 
+         plot = p_nc_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans
+  filtered_nc_n_wta_wfi_hum <- filtered_nc_n_wta_wfi %>% 
+    filter(Category != "Humans")
+  
+  p_nc_n_wta_wfi_hum <- ggplot(filtered_nc_n_wta_wfi_hum, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum.pdf"), 
+         plot = p_nc_n_wta_wfi_hum, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals
+  filtered_nc_n_wta_wfi_hum_wtm <- filtered_nc_n_wta_wfi_hum %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_nc_n_wta_wfi_hum_wtm <- ggplot(filtered_nc_n_wta_wfi_hum_wtm, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals, no farmed fish
+  filtered_nc_n_wta_wfi_hum_wtm_ffi <- filtered_nc_n_wta_wfi_hum_wtm %>% 
+    filter(Category != "Fish")
+  
+  p_nc_n_wta_wfi_hum_wtm_ffi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens
+  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch <- filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
+    filter(Category != "Chickens")
+  
+  p_nc_n_wta_wfi_hum_wtm_ffi_fch <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens, no wild birds
+  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
+    filter(Category != "Wild birds")
+  
+  p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year), 
+                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens, No w. birds)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
+         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
+  
+  cat("NC utility plots saved to:", output_dir, "\n")
+}
+
+#' Create WR utility trend plots with progressive category exclusions
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_wr_utility_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values for WR utility
+  filtered_data_wr <- data %>%
+    filter(!is.na(WR_utility), !is.na(aliveatanytime))
+  
+  # WR utility over time - all categories
+  p_wr <- ggplot(filtered_data_wr, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_data_wr %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_wr$Year), 
+                                  max(filtered_data_wr$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
+         plot = p_wr, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods
+  filtered_wr_n_wta <- filtered_data_wr %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_wr_n_wta <- ggplot(filtered_wr_n_wta, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta$Year), 
+                                  max(filtered_wr_n_wta$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
+         plot = p_wr_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_wr_n_wta_wfi <- filtered_wr_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_wr_n_wta_wfi <- ggplot(filtered_wr_n_wta_wfi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi$Year), 
+                                  max(filtered_wr_n_wta_wfi$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
+         plot = p_wr_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees
+  filtered_wr_n_wta_wfi_fbe <- filtered_wr_n_wta_wfi %>% 
+    filter(Category != "Bees")
+  
+  p_wr_n_wta_wfi_fbe <- ggplot(filtered_wr_n_wta_wfi_fbe, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
+  filtered_wr_n_wta_wfi_fbe_ffi <- filtered_wr_n_wta_wfi_fbe %>% 
+    filter(Category != "Fish")
+  
+  p_wr_n_wta_wfi_fbe_ffi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens
+  filtered_wr_n_wta_wfi_fbe_ffi_fch <- filtered_wr_n_wta_wfi_fbe_ffi %>% 
+    filter(Category != "Chickens")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wild terrestrial mammals
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm <- filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
+    filter(Category != "Humans")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans, no wild birds
+  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
+    filter(Category != "Wild birds")
+  
+  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year), 
+                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
+         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
+  
+  cat("WR utility plots saved to:", output_dir, "\n")
+}
+
+
+
+
+
 #' Extend animal population trends to match human time range using local trend-aware methods
-#' This is for the purpose of net series such as NC_utility, WR_utility, and NC_Tot
+#' This is for the purpose of net series such as NC_utility, WR_utility, and NC_Tot. 
+#' Called by prepare_data_for_net_series
 #' 
 #' @param data The input dataset with all categories
 #' @param target_year_range The target year range to extend to (e.g., 1960:2025)
@@ -853,8 +1334,8 @@ extend_animal_trends <- function(data, target_year_range = 1960:2025, endpoint_y
   return(extended_data)
 }
 
-
 #' Visualize original vs extended trends for quality checking
+#' Called by prepare_data_for_net_series
 #' 
 #' @param original_data Original dataset
 #' @param extended_data Extended dataset 
@@ -908,483 +1389,8 @@ create_trend_extension_plots <- function(original_data, extended_data, output_di
   cat("Trend extension plots saved to:", output_dir, "\n")
 }
 
-
-
-#' Create NC utility trend plots with progressive category exclusions
-#' 
-#' @param data The processed dataset
-#' @param output_dir Directory for saving visualizations
-#' @return NULL (saves plots to files)
-create_nc_utility_plots <- function(data, output_dir = "visualizations") {
-  
-  # Create directory if it doesn't exist
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  # Filter out rows with NA values for NC utility
-  filtered_data_nc <- data %>%
-    filter(!is.na(NC_utility), !is.na(aliveatanytime))
-  
-  # NC utility over time - all categories
-  p_nc <- ggplot(filtered_data_nc, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_data_nc %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_data_nc$Year), 
-                                  max(filtered_data_nc$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (1950-2025)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends.pdf"), 
-         plot = p_nc, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods
-  filtered_nc_n_wta <- filtered_data_nc %>% 
-    filter(Category != "Wild terrestrial arthropods")
-  
-  p_nc_n_wta <- ggplot(filtered_nc_n_wta, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta$Year), 
-                                  max(filtered_nc_n_wta$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta.pdf"), 
-         plot = p_nc_n_wta, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish
-  filtered_nc_n_wta_wfi <- filtered_nc_n_wta %>% 
-    filter(Category != "Wild fish")
-  
-  p_nc_n_wta_wfi <- ggplot(filtered_nc_n_wta_wfi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi$Year), 
-                                  max(filtered_nc_n_wta_wfi$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi.pdf"), 
-         plot = p_nc_n_wta_wfi, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no humans
-  filtered_nc_n_wta_wfi_hum <- filtered_nc_n_wta_wfi %>% 
-    filter(Category != "Humans")
-  
-  p_nc_n_wta_wfi_hum <- ggplot(filtered_nc_n_wta_wfi_hum, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi_hum %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum.pdf"), 
-         plot = p_nc_n_wta_wfi_hum, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals
-  filtered_nc_n_wta_wfi_hum_wtm <- filtered_nc_n_wta_wfi_hum %>% 
-    filter(Category != "Wild terrestrial mammals")
-  
-  p_nc_n_wta_wfi_hum_wtm <- ggplot(filtered_nc_n_wta_wfi_hum_wtm, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm.pdf"), 
-         plot = p_nc_n_wta_wfi_hum_wtm, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals, no farmed fish
-  filtered_nc_n_wta_wfi_hum_wtm_ffi <- filtered_nc_n_wta_wfi_hum_wtm %>% 
-    filter(Category != "Fish")
-  
-  p_nc_n_wta_wfi_hum_wtm_ffi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi.pdf"), 
-         plot = p_nc_n_wta_wfi_hum_wtm_ffi, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens
-  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch <- filtered_nc_n_wta_wfi_hum_wtm_ffi %>% 
-    filter(Category != "Chickens")
-  
-  p_nc_n_wta_wfi_hum_wtm_ffi_fch <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch.pdf"), 
-         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no humans, no wt. mammals, no f. fish, no chickens, no wild birds
-  filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- filtered_nc_n_wta_wfi_hum_wtm_ffi_fch %>% 
-    filter(Category != "Wild birds")
-  
-  p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi <- ggplot(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year), 
-                                  max(filtered_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi$Year) + 30)) +
-    labs(title = "Utility Over Time - NC Method (No wt. arthropods, No w. fish, No humans, No wt. mammals, No f. fish, No chickens, No w. birds)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
-         plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
-  
-  cat("NC utility plots saved to:", output_dir, "\n")
-}
-
-#' Create WR utility trend plots with progressive category exclusions
-#' 
-#' @param data The processed dataset
-#' @param output_dir Directory for saving visualizations
-#' @return NULL (saves plots to files)
-create_wr_utility_plots <- function(data, output_dir = "visualizations") {
-  
-  # Create directory if it doesn't exist
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  # Filter out rows with NA values for WR utility
-  filtered_data_wr <- data %>%
-    filter(!is.na(WR_utility), !is.na(aliveatanytime))
-  
-  # WR utility over time - all categories
-  p_wr <- ggplot(filtered_data_wr, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_data_wr %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_data_wr$Year), 
-                                  max(filtered_data_wr$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (1950-2025)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends.pdf"), 
-         plot = p_wr, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods
-  filtered_wr_n_wta <- filtered_data_wr %>% 
-    filter(Category != "Wild terrestrial arthropods")
-  
-  p_wr_n_wta <- ggplot(filtered_wr_n_wta, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta$Year), 
-                                  max(filtered_wr_n_wta$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta.pdf"), 
-         plot = p_wr_n_wta, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish
-  filtered_wr_n_wta_wfi <- filtered_wr_n_wta %>% 
-    filter(Category != "Wild fish")
-  
-  p_wr_n_wta_wfi <- ggplot(filtered_wr_n_wta_wfi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi$Year), 
-                                  max(filtered_wr_n_wta_wfi$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi.pdf"), 
-         plot = p_wr_n_wta_wfi, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no bees
-  filtered_wr_n_wta_wfi_fbe <- filtered_wr_n_wta_wfi %>% 
-    filter(Category != "Bees")
-  
-  p_wr_n_wta_wfi_fbe <- ggplot(filtered_wr_n_wta_wfi_fbe, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe, width = 10, height = 6)
-  
-  # No wild terrestrial arthropods, no wild fish, no bees, no farmed fish
-  filtered_wr_n_wta_wfi_fbe_ffi <- filtered_wr_n_wta_wfi_fbe %>% 
-    filter(Category != "Fish")
-  
-  p_wr_n_wta_wfi_fbe_ffi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens
-  filtered_wr_n_wta_wfi_fbe_ffi_fch <- filtered_wr_n_wta_wfi_fbe_ffi %>% 
-    filter(Category != "Chickens")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wild terrestrial mammals
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm <- filtered_wr_n_wta_wfi_fbe_ffi_fch %>% 
-    filter(Category != "Wild terrestrial mammals")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm %>% 
-    filter(Category != "Humans")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum, width = 10, height = 6)
-  
-  # No wt. arthropods, no w. fish, no bees, no f. fish, no chickens, no wt. mammals, no humans, no wild birds
-  filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum %>% 
-    filter(Category != "Wild birds")
-  
-  p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi <- ggplot(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
-    geom_line(size = 1) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
-    geom_text(data = filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi %>% 
-                group_by(Category, Group) %>% 
-                filter(Year == max(Year)) %>% 
-                ungroup(),
-              aes(label = Category), 
-              hjust = -0.1, 
-              size = 6, 
-              check_overlap = TRUE) +
-    scale_x_continuous(limits = c(min(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year), 
-                                  max(filtered_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi$Year) + 30)) +
-    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish, No bees, No f. fish, No chickens, No wt. mammals, No humans, No w. birds)", 
-         y = "Utility", 
-         x = "Year") +
-     theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
-    theme(legend.position = "none")
-  
-  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
-         plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
-  
-  cat("WR utility plots saved to:", output_dir, "\n")
-}
-
-#' Prepare data for net series calculations by extending time ranges
+#' Prepare data for net series calculations by extending time ranges. Calls 
+#' extend_animal_trends and create_trend_extension_plots
 #' 
 #' @param data The processed dataset
 #' @param output_dir Directory for saving trend extension plots
@@ -1427,6 +1433,308 @@ prepare_data_for_net_series <- function(data,
   
   return(extended_data_for_net)
 }
+
+
+
+
+#' Create four-panel population comparison plots
+#' 
+#' @param data The integrated calc_tseries dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_four_panel_population_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  cat("Creating four-panel population comparison plots...\n")
+  
+  # Prepare population data by group
+  human_pop <- data %>% 
+    filter(Category == "Humans") %>%
+    select(Year, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime))
+  
+  farmed_pop <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    group_by(Year) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    filter(aliveatanytime > 0)
+  
+  wild_pop <- data %>%
+    filter(Group == "Wild Animals") %>%
+    group_by(Year) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    filter(aliveatanytime > 0)
+  
+  # Set theme for this function (temporary override)
+  original_theme <- theme_get()
+  theme_set(theme_minimal(base_size = 12) + 
+              theme(
+                plot.title = element_text(face = "bold", size = 14),
+                plot.subtitle = element_text(size = 11, color = "grey30"),
+                strip.text = element_text(face = "bold"),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                axis.ticks = element_line(color = "grey70"),
+                axis.line = element_line(color = "grey70"),
+                text = element_text(family = "")  # Use default system font
+              ))
+  
+  # Beautiful color palette inspired by your research domain
+  colors <- c(Humans = "#2E86AB", Farmed = "#F24236", Wild = "#27AE60")
+  
+  # Panel 1: Human Population
+  p1 <- ggplot(human_pop, aes(x = Year, y = aliveatanytime)) +
+    geom_area(alpha = 0.7, fill = colors["Humans"]) +
+    geom_line(color = colors["Humans"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Human Population", 
+         #subtitle = "Global demographic growth",
+         y = "Population (Billions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 2: Farmed Animals  
+  p2 <- ggplot(farmed_pop, aes(x = Year, y = aliveatanytime)) +
+    geom_area(alpha = 0.7, fill = colors["Farmed"]) +
+    geom_line(color = colors["Farmed"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Farmed Animal Population", 
+         #subtitle = "Agricultural intensification",
+         y = "Population (Billions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 3: Wild Animals
+  p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime)) +
+    geom_area(alpha = 0.7, fill = colors["Wild"]) +
+    geom_line(color = colors["Wild"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Wild Animal Population", 
+         #subtitle = "Biodiversity under pressure",
+         y = "Population (Trillions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 4: Combined comparison (log scale for visibility)
+  combined_data <- bind_rows(
+    human_pop %>% mutate(Group = "Humans"),
+    farmed_pop %>% mutate(Group = "Farmed Animals"),  
+    wild_pop %>% mutate(Group = "Wild Animals")
+  ) %>%
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+  
+  p4 <- ggplot(combined_data, aes(x = Year, y = aliveatanytime, 
+                                  color = Group, fill = Group)) +
+    geom_area(alpha = 0.4, position = "identity") +
+    geom_line(size = 1.2) +
+    scale_y_log10(labels = label_number()) +
+    scale_color_manual(values = c("Humans" = colors["Humans"], 
+                                  "Farmed Animals" = colors["Farmed"],
+                                  "Wild Animals" = colors["Wild"])) +
+    scale_fill_manual(values = c("Humans" = colors["Humans"], 
+                                 "Farmed Animals" = colors["Farmed"],
+                                 "Wild Animals" = colors["Wild"])) +
+    labs(title = "Comparative Population Trends", 
+         subtitle = "Log scale reveals different growth patterns",
+         y = "Population (Log Scale)",
+         color = "", fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom")
+  
+  # Combine with patchwork
+  final_plot <- (p1 | p2) / (p3 | p4) +
+    plot_annotation(
+      title = "Global Population Dynamics: Humans, Farmed Animals, and Wildlife",
+      subtitle = "A comparative analysis of population trends across sentient beings (1950-2025)",
+      #caption = "Data: Welfare Analysis Framework | Method: 32-82 Classification"
+    ) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  # Save using your existing universal save function
+  universal_ggsave(final_plot, "four_panel_population_comparison", output_dir,
+                   pdf_width = 16, pdf_height = 10)
+  
+  # Also create individual panels for flexibility
+  universal_ggsave(p1, "population_humans_only", output_dir, 
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p2, "population_farmed_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p3, "population_wild_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "population_comparison_log", output_dir,
+                   pdf_width = 10, pdf_height = 6)
+  
+  # Restore original theme
+  theme_set(original_theme)
+  
+  cat("Four-panel population comparison plots saved to:", output_dir, "\n")
+}
+
+#stacked version
+# create_four_panel_population_plots <- function(data, output_dir = "visualizations") {
+#   
+#   # Create directory if it doesn't exist
+#   if(!dir.exists(output_dir)) {
+#     dir.create(output_dir, recursive = TRUE)
+#   }
+#   
+#   cat("Creating four-panel population comparison plots...\n")
+#   
+#   # Prepare human population data (single category)
+#   human_pop <- data %>% 
+#     filter(Category == "Humans") %>%
+#     select(Year, aliveatanytime) %>%
+#     filter(!is.na(aliveatanytime), aliveatanytime > 0)
+#   
+#   # Prepare farmed animal data by category for stacking
+#   farmed_pop <- data %>%
+#     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+#     select(Year, Category, aliveatanytime) %>%
+#     filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+#     # Make sure Year is numeric
+#     mutate(Year = as.numeric(Year)) %>%
+#     # Complete all year-category combinations (fill missing with 0)
+#     complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+#     # Remove years where ALL categories are 0
+#     group_by(Year) %>%
+#     filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+#     ungroup()
+#   
+#   # Prepare wild animal data by category for stacking  
+#   wild_pop <- data %>%
+#     filter(Group == "Wild Animals") %>%
+#     select(Year, Category, aliveatanytime) %>%
+#     filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+#     mutate(Year = as.numeric(Year)) %>%
+#     complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+#     group_by(Year) %>%
+#     filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+#     ungroup()
+#   
+#   # Debug output
+#   cat("=== DATA SUMMARY ===\n")
+#   cat("Human data: ", nrow(human_pop), " rows\n")
+#   cat("Farmed data: ", nrow(farmed_pop), " rows\n")
+#   cat("Wild data: ", nrow(wild_pop), " rows\n")
+#   cat("Farmed categories: ", paste(unique(farmed_pop$Category), collapse = ", "), "\n")
+#   cat("Wild categories: ", paste(unique(wild_pop$Category), collapse = ", "), "\n")
+#   
+#   # Aggregated totals for the comparison panel
+#   farmed_total <- farmed_pop %>%
+#     group_by(Year) %>%
+#     summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+#     filter(aliveatanytime > 0)
+#   
+#   wild_total <- wild_pop %>%
+#     group_by(Year) %>%
+#     summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+#     filter(aliveatanytime > 0)
+#   
+#   # Set theme
+#   original_theme <- theme_get()
+#   theme_set(theme_minimal(base_size = 12) + 
+#               theme(
+#                 plot.title = element_text(face = "bold", size = 14),
+#                 plot.subtitle = element_text(size = 11, color = "grey30"),
+#                 strip.text = element_text(face = "bold"),
+#                 panel.grid.minor = element_blank(),
+#                 panel.border = element_blank(),
+#                 axis.ticks = element_line(color = "grey70"),
+#                 axis.line = element_line(color = "grey70")
+#               ))
+#   
+#   # Color palettes
+#   main_colors <- c(Humans = "#2E86AB", Farmed = "#F24236", Wild = "#27AE60")
+#   
+#   # Panel 1: Human Population (simple area)
+#   p1 <- ggplot(human_pop, aes(x = Year, y = aliveatanytime)) +
+#     geom_area(alpha = 0.7, fill = main_colors["Humans"]) +
+#     geom_line(color = main_colors["Humans"], size = 1.2) +
+#     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+#     labs(title = "Human Population", 
+#          y = "Population (Billions)") +
+#     theme(plot.title = element_text(size = 14, face = "bold"))
+#   
+#   # Panel 2: Farmed Animals (stacked area chart)
+#   p2 <- ggplot(farmed_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+#     geom_area(position = "stack", alpha = 0.8) +
+#     scale_fill_brewer(palette = "Set3") +
+#     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+#     labs(title = "Farmed Animal Population", 
+#          y = "Population (Billions)",
+#          fill = "") +
+#     theme(plot.title = element_text(size = 14, face = "bold"),
+#           legend.position = "bottom",
+#           legend.text = element_text(size = 8)) +
+#     guides(fill = guide_legend(nrow = 3))
+#   
+#   # Panel 3: Wild Animals (stacked area chart)
+#   p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+#     geom_area(position = "stack", alpha = 0.8) +
+#     scale_fill_brewer(palette = "Set2") +
+#     scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+#     labs(title = "Wild Animal Population", 
+#          y = "Population (Trillions)",
+#          fill = "") +
+#     theme(plot.title = element_text(size = 14, face = "bold"),
+#           legend.position = "bottom",
+#           legend.text = element_text(size = 8)) +
+#     guides(fill = guide_legend(nrow = 2))
+#   
+#   # Panel 4: Combined comparison (log scale)
+#   combined_data <- bind_rows(
+#     human_pop %>% mutate(Group = "Humans"),
+#     farmed_total %>% mutate(Group = "Farmed Animals"),  
+#     wild_total %>% mutate(Group = "Wild Animals")
+#   ) %>%
+#     mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+#   
+#   p4 <- ggplot(combined_data, aes(x = Year, y = aliveatanytime, 
+#                                   color = Group, fill = Group)) +
+#     geom_area(alpha = 0.4, position = "identity") +
+#     geom_line(size = 1.2) +
+#     scale_y_log10(labels = label_number()) +
+#     scale_color_manual(values = main_colors) +
+#     scale_fill_manual(values = main_colors) +
+#     labs(title = "Comparative Population Trends", 
+#          subtitle = "Log scale reveals different growth patterns",
+#          y = "Population (Log Scale)",
+#          color = "", fill = "") +
+#     theme(plot.title = element_text(size = 14, face = "bold"),
+#           legend.position = "bottom")
+#   
+#   # Combine with patchwork
+#   final_plot <- (p1 | p2) / (p3 | p4) +
+#     plot_annotation(
+#       title = "Global Population Dynamics: Humans, Farmed Animals, and Wildlife",
+#       subtitle = "A comparative analysis of population trends across sentient beings (1950-2025)",
+#       caption = "Data: Welfare Analysis Framework | Method: 32-82 Classification"
+#     ) +
+#     plot_layout(guides = "collect") &
+#     theme(legend.position = "bottom")
+#   
+#   # Save plots
+#   universal_ggsave(final_plot, "four_panel_population_comparison", output_dir,
+#                    pdf_width = 16, pdf_height = 10)
+#   
+#   # Individual panels
+#   universal_ggsave(p1, "population_humans_only", output_dir, 
+#                    pdf_width = 8, pdf_height = 6)
+#   universal_ggsave(p2, "population_farmed_stacked", output_dir,
+#                    pdf_width = 8, pdf_height = 6)
+#   universal_ggsave(p3, "population_wild_stacked", output_dir,
+#                    pdf_width = 8, pdf_height = 6)
+#   universal_ggsave(p4, "population_comparison_log", output_dir,
+#                    pdf_width = 10, pdf_height = 6)
+#   
+#   # Restore theme
+#   theme_set(original_theme)
+#   
+#   cat("Four-panel population comparison plots saved to:", output_dir, "\n")
+# }
+
 
 #' Create NC net utility comparison plots with different category exclusions
 #' 
@@ -1651,7 +1959,7 @@ create_wr_net_utility_comparisons <- function(extended_data_for_net,
            Category != "Wild terrestrial arthropods",
            Category != "Wild fish")
   
-  net_wr_n_wta_wfi_datanet_wr_n_wta_wfi_data <- extended_wr_n_wta_wfi %>% 
+  net_wr_n_wta_wfi_data <- extended_wr_n_wta_wfi %>% 
     filter(Year >= min_year_constraint, 
            Year <= max_year_constraint) %>%
     group_by(Year) %>%
@@ -2060,6 +2368,42 @@ create_disaggregated_plots_with_totals <- function(data,
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_with_total.pdf"), 
          plot = p_wr_utility_n_wta_wfi, width = 10, height = 6)
   
+  # Calculate total without bees across all displayed categories for specified time range
+  total_wr_utility_no_bees <- filtered_wr_utility_n_wta_wfi %>%
+    filter(Year >= min_total_year, Year <= max_total_year,
+           Category != "Bees") %>%
+    group_by(Year) %>%
+    summarize(WR_utility = sum(WR_utility, na.rm = TRUE), .groups = "drop") %>%
+    mutate(Category = "Total without bees", Group = "Total")
+  
+  # Combine individual categories with both totals
+  plot_data_wr_utility_with_totals <- bind_rows(filtered_wr_utility_n_wta_wfi, total_wr_utility, total_wr_utility_no_bees)
+  
+  p_wr_utility_n_wta_wfi_totals <- ggplot(plot_data_wr_utility_with_totals, aes(x = Year, y = WR_utility, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    # Add labels at the end of each line
+    geom_text(data = plot_data_wr_utility_with_totals %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(plot_data_wr_utility_with_totals$Year), 
+                                  max(plot_data_wr_utility_with_totals$Year) + 30)) +
+    labs(title = "Utility Over Time - WR Method (No wt. arthropods, No w. fish)", 
+         y = "WR Utility", 
+         x = "Year") +
+    # Remove the legend since we have direct labels
+    theme_minimal() +   theme(     plot.title = element_text(size = 22, face = "bold"),     axis.title.x = element_text(size = 24),     axis.title.y = element_text(size = 24),      axis.text.x = element_text(size = 10),     axis.text.y = element_text(size = 10)   ) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_with_totals.pdf"), 
+         plot = p_wr_utility_n_wta_wfi_totals, width = 10, height = 6)
+  
   cat("Disaggregated plots with totals saved to:", output_dir, "\n")
 }
 
@@ -2100,16 +2444,19 @@ create_utility_visualizations <- function(data,
   # 3. Prepare data for net series
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
-  # 4. Create NC net utility comparisons
+  # 4. Create four-panel population plot
+  create_four_panel_population_plots(data, output_dir)
+  
+  # 5. Create NC net utility comparisons
   create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
   
-  # 5. Create WR net utility comparisons
+  # 6. Create WR net utility comparisons
   create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
   
-  # 6. Create NC net total series
+  # 7. Create NC net total series
   create_nc_net_tot_series(extended_data_for_net, output_dir)
   
-  # 7. Create disaggregated plots with totals
+  # 8. Create disaggregated plots with totals
   create_disaggregated_plots_with_totals(data, output_dir)
   
   cat("All utility visualizations completed successfully!\n")

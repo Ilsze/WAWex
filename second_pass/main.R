@@ -5,7 +5,8 @@
 
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
-       stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm)
+       stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
+       patchwork, hrbrthemes, scales)
 
 # Source the integration script (which sources the other scripts)
 source("second_pass/integration.R")
@@ -35,7 +36,7 @@ presentation_config <- list(
     "NC_net_utility_comp_nw.pdf" = "B5",
     "WR_net_utility_comp.pdf" = "C1",
     "WR_utility_trends.pdf" = "C2",
-    "WR_utility_trends_n_wta_wfi_with_total.pdf" = "C3",
+    "WR_utility_trends_n_wta_wfi_with_totals.pdf" = "C3",
     "WR_net_utility_comp_n_wta_wfi.pdf" = "C4",
     "WR_net_utility_comp_n_wta_wfi_fbe.pdf" = "C5",
     "WR_net_utility_comp_nw.pdf" = "C6",
@@ -55,23 +56,21 @@ presentation_config <- list(
 )
 
 # ==============================================================================
-# NEW GGSAVE OVERRIDE
+# GGSAVE OVERRIDE
 # ==============================================================================
 
 # Override the default ggsave function globally
 if(!is.null(presentation_config) && presentation_config$create_presentation_images) {
-  # Store original ggsave
-  original_ggsave <- ggsave
   
   # Create new ggsave function that automatically handles presentation images
   ggsave <- function(filename, plot = last_plot(), device = NULL, path = NULL, 
                      scale = 1, width = NA, height = NA, units = c("in", "cm", "mm", "px"),
                      dpi = 300, limitsize = TRUE, bg = NULL, ...) {
     
-    # Call original ggsave first for the PDF
-    result <- original_ggsave(filename = filename, plot = plot, device = device, 
-                              path = path, scale = scale, width = width, height = height, 
-                              units = units, dpi = dpi, limitsize = limitsize, bg = bg, ...)
+    # Call the ORIGINAL ggplot2 ggsave using namespace qualification to avoid recursion
+    result <- ggplot2:::ggsave(filename = filename, plot = plot, device = device, 
+                               path = path, scale = scale, width = width, height = height, 
+                               units = units, dpi = dpi, limitsize = limitsize, bg = bg, ...)
     
     # Extract directory and filename info
     if(!is.null(path)) {
@@ -123,12 +122,12 @@ if(!is.null(presentation_config) && presentation_config$create_presentation_imag
         dir.create(presentation_dir, recursive = TRUE)
       }
       
-      # Save presentation image using ORIGINAL ggsave (no recursion!)
+      # Save presentation image using the ORIGINAL ggplot2 ggsave (no recursion!)
       image_ext <- presentation_config$image_format %||% "png"
       output_filename <- paste0(prefix, base_filename, ".", image_ext)
       output_path <- file.path(presentation_dir, output_filename)
       
-      original_ggsave(
+      ggplot2:::ggsave(
         filename = output_path,
         plot = plot,
         width = presentation_config$image_width %||% 12,
@@ -161,3 +160,17 @@ if(exists("original_ggsave")) {
   ggsave <- original_ggsave
   rm(original_ggsave)
 }
+
+
+
+
+
+# ==============================================================================
+# FINDING MY HEAD 
+# ==============================================================================
+# human_dat = read_xlsx("dat/world_bank/world_bank_pop_gdp_clean.xlsx")
+# farmed_dat = read_xlsx("first_pass/calc_tseries.xlsx")
+# wild_dat = read_xlsx("second_pass/wild_calc_tseries.xlsx")
+# integrated_dat = read_xlsx("fourth_pass/welfare_results/3282/integrated_calc_tseries.xlsx")
+
+

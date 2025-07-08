@@ -1210,116 +1210,115 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
 #' Called by prepare_data_for_net_series
 #' 
 #' @param data The input dataset with all categories
-#' @param target_year_range The target year range to extend to (e.g., 1960:2023)
+#' @param target_year_range The target year range set by prepare_data_for_net_series
 #' @param endpoint_years Number of years to use for endpoint trend calculation (default 5)
 #' @return Dataset with extended trends for all categories
-extend_animal_trends <- function(data, target_year_range = 1960:2023, endpoint_years = 5) {
+extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
   
   target_min <- min(target_year_range)
   target_max <- max(target_year_range)
   
-  cat("Target extension range:", min(target_year_range), "to", max(target_year_range), "\n")
-  
-  # Function to fit and predict trends for a single category using local trends
-  fit_and_extend_category <- function(category_data, category_name, target_years, endpoint_years) {
-    
-    if(nrow(category_data) < 3) {
-      warning(paste("Not enough data points for", category_name, "- skipping projection"))
-      return(category_data)
-    }
-    
-    # Get the original year range
-    original_years <- range(category_data$Year)
-    cat("\n", category_name, "original range:", original_years[1], "to", original_years[2])
-    
-    # Sort data by year
-    category_data <- category_data %>% arrange(Year)
-    
-    extended_data <- category_data
-    
-    # BACKWARD EXTENSION (if needed)
-    years_before <- target_years[target_years < original_years[1]]
-    if(length(years_before) > 0) {
-      
-      # Use first few years to establish backward trend
-      early_data <- category_data %>% 
-        head(min(endpoint_years, nrow(category_data)))
-      
-      if(nrow(early_data) >= 2) {
-        # Fit linear trend to early years
-        early_model <- lm(aliveatanytime ~ Year, data = early_data)
-        
-        # Project backward
-        backward_predictions <- predict(early_model, newdata = data.frame(Year = years_before))
-        backward_predictions <- pmax(backward_predictions, 0)  # No negative values
-        
-        # Create backward extension rows
-        backward_rows <- category_data[1, ][rep(1, length(years_before)), ]
-        backward_rows$Year <- years_before
-        backward_rows$aliveatanytime <- backward_predictions
-        
-        extended_data <- bind_rows(backward_rows, extended_data)
-        
-        cat(" - extended backward by", length(years_before), "years")
-      }
-    }
-    
-    # FORWARD EXTENSION (if needed)
-    years_after <- target_years[target_years > original_years[2]]
-    if(length(years_after) > 0) {
-      
-      # Use last few years to establish forward trend
-      recent_data <- category_data %>% 
-        tail(min(endpoint_years, nrow(category_data)))
-      
-      if(nrow(recent_data) >= 2) {
-        # Check if trend is relatively stable (low variability)
-        recent_cv <- sd(recent_data$aliveatanytime) / mean(recent_data$aliveatanytime)
-        
-        if(recent_cv < 0.1) {
-          # If stable, use mean of recent years
-          forward_predictions <- rep(mean(recent_data$aliveatanytime), length(years_after))
-          cat(" - stable trend, using mean")
-        } else {
-          # If trending, fit linear trend to recent years
-          recent_model <- lm(aliveatanytime ~ Year, data = recent_data)
-          forward_predictions <- predict(recent_model, newdata = data.frame(Year = years_after))
-          forward_predictions <- pmax(forward_predictions, 0)  # No negative values
-          cat(" - trending, using linear extrapolation")
-        }
-        
-        # Create forward extension rows
-        forward_rows <- category_data[nrow(category_data), ][rep(1, length(years_after)), ]
-        forward_rows$Year <- years_after
-        forward_rows$aliveatanytime <- forward_predictions
-        
-        extended_data <- bind_rows(extended_data, forward_rows)
-        
-        cat(" - extended forward by", length(years_after), "years")
-      }
-    }
-    
-    # TRUNCATION: Filter to only include target years
-    extended_data <- extended_data %>%
-      filter(Year >= target_min & Year <= target_max) %>%
-      arrange(Year)
-    
-    # Report truncation if it occurred
-    if(original_years[1] < target_min || original_years[2] > target_max) {
-      cat(" - truncated to target range")
-    }
-    
-    # Sort final data
-    extended_data <- extended_data %>% arrange(Year)
-    cat("\n")
-    
-    return(extended_data)
-  }
+  cat("Target extension range:", target_min, "to", target_max, "\n")
   
   # Process each category separately
   extended_data <- data %>%
-    group_by(Category, Group) %>%
-    group_modify(~ fit_and_extend_category(.x, paste(.y$Category, .y$Group), target_year_range, endpoint_years)) %>%
+    group_by(Category) %>%
+    group_modify(~ {
+      category_data <- .x
+      category_name <- .y$Category
+      
+      if(nrow(category_data) < 3) {
+        warning(paste("Not enough data points for", category_name, "- skipping projection"))
+        return(category_data)
+      }
+      
+      # Get the original year range
+      original_years <- range(category_data$Year)
+      cat("\n", category_name, "original range:", original_years[1], "to", original_years[2])
+      
+      # Sort data by year
+      category_data <- category_data %>% arrange(Year)
+      
+      extended_data <- category_data
+      
+      # BACKWARD EXTENSION (if needed)
+      years_to_extend_back <- original_years[1] - target_min
+      if(years_to_extend_back > 0) {
+        years_before <- (target_min):(original_years[1] - 1)
+        
+        # Use first few years to establish backward trend
+        early_data <- category_data %>% 
+          head(min(endpoint_years, nrow(category_data)))
+        
+        if(nrow(early_data) >= 2) {
+          # Fit linear trend to early years
+          early_model <- lm(aliveatanytime ~ Year, data = early_data)
+          
+          # Project backward
+          backward_predictions <- predict(early_model, newdata = data.frame(Year = years_before))
+          backward_predictions <- pmax(backward_predictions, 0)  # No negative values
+          
+          # Create backward extension rows
+          backward_rows <- category_data[1, ][rep(1, length(years_before)), ]
+          backward_rows$Year <- years_before
+          backward_rows$aliveatanytime <- backward_predictions
+          
+          extended_data <- bind_rows(backward_rows, extended_data)
+          
+          cat(" - extended backward by", length(years_before), "years")
+        }
+      }
+      
+      # FORWARD EXTENSION (if needed)
+      years_to_extend_forward <- target_max - original_years[2]
+      if(years_to_extend_forward > 0) {
+        years_after <- (original_years[2] + 1):(target_max)
+        
+        # Use last few years to establish forward trend
+        recent_data <- category_data %>% 
+          tail(min(endpoint_years, nrow(category_data)))
+        
+        if(nrow(recent_data) >= 2) {
+          # Check if trend is relatively stable (low variability)
+          recent_cv <- sd(recent_data$aliveatanytime) / mean(recent_data$aliveatanytime)
+          
+          if(recent_cv < 0.1) {
+            # If stable, use mean of recent years
+            forward_predictions <- rep(mean(recent_data$aliveatanytime), length(years_after))
+            cat(" - stable trend, using mean")
+          } else {
+            # If trending, fit linear trend to recent years
+            recent_model <- lm(aliveatanytime ~ Year, data = recent_data)
+            forward_predictions <- predict(recent_model, newdata = data.frame(Year = years_after))
+            forward_predictions <- pmax(forward_predictions, 0)  # No negative values
+            cat(" - trending, using linear extrapolation")
+          }
+          
+          # Create forward extension rows
+          forward_rows <- category_data[nrow(category_data), ][rep(1, length(years_after)), ]
+          forward_rows$Year <- years_after
+          forward_rows$aliveatanytime <- forward_predictions
+          
+          extended_data <- bind_rows(extended_data, forward_rows)
+          
+          cat(" - extended forward by", length(years_after), "years")
+        }
+      }
+      
+      # TRUNCATION: Filter to only include target years
+      extended_data <- extended_data %>%
+        filter(Year >= target_min & Year <= target_max) %>%
+        arrange(Year)
+      
+      # Report truncation if it occurred
+      if(original_years[1] < target_min || original_years[2] > target_max) {
+        cat(" - truncated to target range")
+      }
+      
+      cat("\n")
+      
+      return(extended_data)
+    }) %>%
     ungroup()
   
   # Recalculate utility columns if they exist
@@ -1338,6 +1337,7 @@ extend_animal_trends <- function(data, target_year_range = 1960:2023, endpoint_y
       mutate(NC_tot = aliveatanytime * forebrain_neurons)
   }
   
+  view(extended_data)
   return(extended_data)
 }
 
@@ -1405,7 +1405,7 @@ create_trend_extension_plots <- function(original_data, extended_data, output_di
 #' @return Extended dataset suitable for net series calculations
 prepare_data_for_net_series <- function(data, 
                                         output_dir = "visualizations",
-                                        target_year_range = 1960:2019) {
+                                        target_year_range = 1960:2023) {
   
   # Create directory if it doesn't exist
   if(!dir.exists(output_dir)) {
@@ -2291,7 +2291,7 @@ create_utility_visualizations <- function(data,
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
   # 4. Create four-panel population plot
-  create_four_panel_population_plots(data, output_dir)
+  create_four_panel_population_plots(extended_data_for_net, output_dir)
   
   # 5. Create NC net utility comparisons
   create_nc_net_utility_comparisons(extended_data_for_net, output_dir)

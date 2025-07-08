@@ -172,6 +172,6 @@ if(exists("original_ggsave")) {
 # farmed_dat = read_xlsx("first_pass/calc_tseries.xlsx")
 # wild_dat = read_xlsx("second_pass/wild_calc_tseries.xlsx")
 # integrated_dat = read_xlsx("fourth_pass/welfare_results/3282/integrated_calc_tseries.xlsx")
-# extended_integrated_dat = read_xlsx("fourth_pass/dat/extended_integrated_calc_tseries.xlsx")
+extended_integrated_dat = read_xlsx("fourth_pass/dat/extended_integrated_calc_tseries.xlsx")
 
 

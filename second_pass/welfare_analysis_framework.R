@@ -1282,7 +1282,7 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
           # Check if trend is relatively stable (low variability)
           recent_cv <- sd(recent_data$aliveatanytime) / mean(recent_data$aliveatanytime)
           
-          if(recent_cv < 0.1) {
+          if(recent_cv < 0.05) {
             # If stable, use mean of recent years
             forward_predictions <- rep(mean(recent_data$aliveatanytime), length(years_after))
             cat(" - stable trend, using mean")
@@ -1337,7 +1337,6 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
       mutate(NC_tot = aliveatanytime * forebrain_neurons)
   }
   
-  view(extended_data)
   return(extended_data)
 }
 
@@ -1416,6 +1415,7 @@ prepare_data_for_net_series <- function(data,
   cat("Extending animal trends for net series calculation...\n")
   extended_data_for_net <- extend_animal_trends(data, target_year_range = target_year_range)
   
+  view(extended_data_for_net)
   # Create trend extension plots directory and sanity check
   extension_plots_dir <- file.path(output_dir, "trend_extension_plots")
   if(!dir.exists(extension_plots_dir)) {
@@ -1579,7 +1579,143 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
   cat("Four-panel population comparison plots saved to:", output_dir, "\n")
 }
 
-
+#' Create four-panel NC_tot (total neurons) comparison plots
+#' 
+#' @param data The integrated calc_tseries dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  cat("Creating four-panel NC_tot comparison plots...\n")
+  
+  # Ensure NC_tot column exists
+  data <- ensure_nc_columns(data)
+  
+  # Prepare NC_tot data by group
+  human_nc_tot <- data %>% 
+    filter(Category == "Humans") %>%
+    select(Year, NC_tot) %>%
+    filter(!is.na(NC_tot))
+  
+  farmed_nc_tot <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    group_by(Year) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    filter(NC_tot > 0)
+  
+  wild_nc_tot <- data %>%
+    filter(Group == "Wild Animals") %>%
+    group_by(Year) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    filter(NC_tot > 0)
+  
+  # Set theme for this function (temporary override)
+  original_theme <- theme_get()
+  theme_set(theme_minimal(base_size = 12) + 
+              theme(
+                plot.title = element_text(face = "bold", size = 14),
+                plot.subtitle = element_text(size = 11, color = "grey30"),
+                strip.text = element_text(face = "bold"),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                axis.ticks = element_line(color = "grey70"),
+                axis.line = element_line(color = "grey70"),
+                text = element_text(family = "")  # Use default system font
+              ))
+  
+  # Beautiful color palette inspired by your research domain
+  colors <- c(Humans = "#2E86AB", Farmed = "#F24236", Wild = "#27AE60")
+  
+  # Panel 1: Human Total Neurons
+  p1 <- ggplot(human_nc_tot, aes(x = Year, y = NC_tot)) +
+    geom_area(alpha = 0.7, fill = colors["Humans"]) +
+    geom_line(color = colors["Humans"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Human Total Neurons", 
+         #subtitle = "Aggregate neural capacity",
+         y = "Total Neurons (Trillions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 2: Farmed Animals Total Neurons
+  p2 <- ggplot(farmed_nc_tot, aes(x = Year, y = NC_tot)) +
+    geom_area(alpha = 0.7, fill = colors["Farmed"]) +
+    geom_line(color = colors["Farmed"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Farmed Animal Total Neurons", 
+         #subtitle = "Agricultural neural biomass",
+         y = "Total Neurons (Trillions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 3: Wild Animals Total Neurons
+  p3 <- ggplot(wild_nc_tot, aes(x = Year, y = NC_tot)) +
+    geom_area(alpha = 0.7, fill = colors["Wild"]) +
+    geom_line(color = colors["Wild"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-15, suffix = "Q")) +
+    labs(title = "Wild Animal Total Neurons", 
+         #subtitle = "Natural neural diversity",
+         y = "Total Neurons (Quadrillions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 4: Combined comparison (log scale for visibility)
+  combined_data <- bind_rows(
+    human_nc_tot %>% mutate(Group = "Humans"),
+    farmed_nc_tot %>% mutate(Group = "Farmed Animals"),  
+    wild_nc_tot %>% mutate(Group = "Wild Animals")
+  ) %>%
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+  
+  p4 <- ggplot(combined_data, aes(x = Year, y = NC_tot, 
+                                  color = Group, fill = Group)) +
+    geom_area(alpha = 0.4, position = "identity") +
+    geom_line(size = 1.2) +
+    scale_y_log10(labels = label_number()) +
+    scale_color_manual(values = c("Humans" = colors["Humans"], 
+                                  "Farmed Animals" = colors["Farmed"],
+                                  "Wild Animals" = colors["Wild"])) +
+    scale_fill_manual(values = c("Humans" = colors["Humans"], 
+                                 "Farmed Animals" = colors["Farmed"],
+                                 "Wild Animals" = colors["Wild"])) +
+    labs(title = "Comparative Total Neuron Trends", 
+         subtitle = "Log scale reveals neural capacity distribution",
+         y = "Total Neurons (Log Scale)",
+         color = "", fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom")
+  
+  # Combine with patchwork
+  final_plot <- (p1 | p2) / (p3 | p4) +
+    plot_annotation(
+      title = "Global Neural Capacity: Aggregate Forebrain Neurons Across Sentient Beings",
+      subtitle = "A comparative analysis of total neural capacity trends (1950-2025)",
+      #caption = "Data: Welfare Analysis Framework | NC_tot = population × forebrain neurons"
+    ) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  # Save using your existing universal save function
+  universal_ggsave(final_plot, "four_panel_nc_tot_comparison", output_dir,
+                   pdf_width = 16, pdf_height = 10)
+  
+  # Also create individual panels for flexibility
+  universal_ggsave(p1, "nc_tot_humans_only", output_dir, 
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p2, "nc_tot_farmed_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p3, "nc_tot_wild_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "nc_tot_comparison_log", output_dir,
+                   pdf_width = 10, pdf_height = 6)
+  
+  # Restore original theme
+  theme_set(original_theme)
+  
+  cat("Four-panel NC_tot comparison plots saved to:", output_dir, "\n")
+}
 
 
 #' Create NC net utility comparison plots with different category exclusions
@@ -2290,8 +2426,11 @@ create_utility_visualizations <- function(data,
   # 3. Prepare data for net series
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
-  # 4. Create four-panel population plot
+  # 4a. Create four-panel population plot
   create_four_panel_population_plots(extended_data_for_net, output_dir)
+  
+  #4b. Create four-panel NC_tot plot
+  create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)
   
   # 5. Create NC net utility comparisons
   create_nc_net_utility_comparisons(extended_data_for_net, output_dir)

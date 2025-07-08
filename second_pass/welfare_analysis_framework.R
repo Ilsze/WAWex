@@ -1415,7 +1415,6 @@ prepare_data_for_net_series <- function(data,
   cat("Extending animal trends for net series calculation...\n")
   extended_data_for_net <- extend_animal_trends(data, target_year_range = target_year_range)
   
-  view(extended_data_for_net)
   # Create trend extension plots directory and sanity check
   extension_plots_dir <- file.path(output_dir, "trend_extension_plots")
   if(!dir.exists(extension_plots_dir)) {
@@ -1444,7 +1443,7 @@ prepare_data_for_net_series <- function(data,
 
 
 
-#' Create four-panel population comparison plots
+#' Create four-panel population comparison plots with stacked areas and simplified legends
 #' 
 #' @param data The integrated calc_tseries dataset
 #' @param output_dir Directory for saving visualizations
@@ -1458,27 +1457,69 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
   
   cat("Creating four-panel population comparison plots...\n")
   
-  # Prepare population data by group
-  human_pop <- data %>% 
+  # Prepare human population data (single category)
+  human_pop <- data %>%
     filter(Category == "Humans") %>%
     select(Year, aliveatanytime) %>%
-    filter(!is.na(aliveatanytime))
+    filter(!is.na(aliveatanytime), aliveatanytime > 0)
   
+  # Prepare farmed animal data - only show Bees and Fish separately, group others
   farmed_pop <- data %>%
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
-    group_by(Year) %>%
+    select(Year, Category, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Simplify categories - only show Bees and Fish, group others
+      Category_simplified = case_when(
+        Category == "Bees" ~ "Bees",
+        Category == "Fish" ~ "Fish",
+        TRUE ~ "Other Farmed Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
     summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
-    filter(aliveatanytime > 0)
+    rename(Category = Category_simplified) %>%
+    complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+    group_by(Year) %>%
+    filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+    ungroup()
   
+  # Prepare wild animal data - only show Wild terrestrial arthropods and Wild fish, group others
   wild_pop <- data %>%
     filter(Group == "Wild Animals") %>%
+    select(Year, Category, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Simplify categories - only show arthropods and fish, group others
+      Category_simplified = case_when(
+        Category == "Wild terrestrial arthropods" ~ "Wild terrestrial arthropods",
+        TRUE ~ "Other Wild Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified) %>%
+    complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+    group_by(Year) %>%
+    filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+    ungroup()
+  
+  # Aggregated totals for the comparison panel
+  farmed_total <- farmed_pop %>%
     group_by(Year) %>%
     summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
     filter(aliveatanytime > 0)
   
-  # Set theme for this function (temporary override)
+  wild_total <- wild_pop %>%
+    group_by(Year) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    filter(aliveatanytime > 0)
+  
+  # Set theme
   original_theme <- theme_get()
-  theme_set(theme_minimal(base_size = 12) + 
+  theme_set(theme_minimal(base_size = 12) +
               theme(
                 plot.title = element_text(face = "bold", size = 14),
                 plot.subtitle = element_text(size = 11, color = "grey30"),
@@ -1486,100 +1527,110 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
                 panel.grid.minor = element_blank(),
                 panel.border = element_blank(),
                 axis.ticks = element_line(color = "grey70"),
-                axis.line = element_line(color = "grey70"),
-                text = element_text(family = "")  # Use default system font
+                axis.line = element_line(color = "grey70")
               ))
   
-  # Beautiful color palette inspired by your research domain
-  colors <- c(Humans = "#2E86AB", Farmed = "#F24236", Wild = "#27AE60")
+  # Color palettes
+  main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#F24236", "Wild Animals" = "#27AE60")
   
-  # Panel 1: Human Population
+  # Panel 1: Human Population (simple area)
   p1 <- ggplot(human_pop, aes(x = Year, y = aliveatanytime)) +
-    geom_area(alpha = 0.7, fill = colors["Humans"]) +
-    geom_line(color = colors["Humans"], size = 1.2) +
+    geom_area(alpha = 0.7, fill = main_colors["Humans"]) +
+    geom_line(color = main_colors["Humans"], size = 1.2) +
     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
-    labs(title = "Human Population", 
-         #subtitle = "Global demographic growth",
+    labs(title = "Human Population",
          y = "Population (Billions)") +
     theme(plot.title = element_text(size = 14, face = "bold"))
   
-  # Panel 2: Farmed Animals  
-  p2 <- ggplot(farmed_pop, aes(x = Year, y = aliveatanytime)) +
-    geom_area(alpha = 0.7, fill = colors["Farmed"]) +
-    geom_line(color = colors["Farmed"], size = 1.2) +
+  # Panel 2: Farmed Animals (stacked area chart with simplified categories)
+  p2 <- ggplot(farmed_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = c("Bees" = "#FFD700", "Fish" = "#20B2AA", "Other Farmed Animals" = "#D2691E")) +
     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
-    labs(title = "Farmed Animal Population", 
-         #subtitle = "Agricultural intensification",
-         y = "Population (Billions)") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
+    labs(title = "Farmed Animal Population",
+         y = "Population (Billions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 9))
   
-  # Panel 3: Wild Animals
-  p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime)) +
-    geom_area(alpha = 0.7, fill = colors["Wild"]) +
-    geom_line(color = colors["Wild"], size = 1.2) +
+  # Panel 3: Wild Animals (stacked area chart with simplified categories)
+  p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = c("Wild terrestrial arthropods" = "#8B4513", 
+                                 "Other Wild Animals" = "#90EE90")) +
     scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
-    labs(title = "Wild Animal Population", 
-         #subtitle = "Biodiversity under pressure",
-         y = "Population (Trillions)") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
+    labs(title = "Wild Animal Population",
+         y = "Population (Trillions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 9))
   
-  # Panel 4: Combined comparison (log scale for visibility)
+  # Panel 4: Combined comparison (log scale) with labels - FIXED
   combined_data <- bind_rows(
     human_pop %>% mutate(Group = "Humans"),
-    farmed_pop %>% mutate(Group = "Farmed Animals"),  
-    wild_pop %>% mutate(Group = "Wild Animals")
+    farmed_total %>% mutate(Group = "Farmed Animals"),
+    wild_total %>% mutate(Group = "Wild Animals")
   ) %>%
     mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
   
-  p4 <- ggplot(combined_data, aes(x = Year, y = aliveatanytime, 
+  p4 <- ggplot(combined_data, aes(x = Year, y = aliveatanytime,
                                   color = Group, fill = Group)) +
     geom_area(alpha = 0.4, position = "identity") +
     geom_line(size = 1.2) +
+    # Add labels at the end of each line
+    geom_text(data = combined_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
     scale_y_log10(labels = label_number()) +
-    scale_color_manual(values = c("Humans" = colors["Humans"], 
-                                  "Farmed Animals" = colors["Farmed"],
-                                  "Wild Animals" = colors["Wild"])) +
-    scale_fill_manual(values = c("Humans" = colors["Humans"], 
-                                 "Farmed Animals" = colors["Farmed"],
-                                 "Wild Animals" = colors["Wild"])) +
-    labs(title = "Comparative Population Trends", 
+    scale_color_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
+    scale_fill_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(combined_data$Year), 
+                                  max(combined_data$Year) + 8)) +
+    labs(title = "Comparative Population Trends",
          subtitle = "Log scale reveals different growth patterns",
          y = "Population (Log Scale)",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
-          legend.position = "bottom")
+          legend.position = "none")  # Remove legend since we have direct labels
   
   # Combine with patchwork
   final_plot <- (p1 | p2) / (p3 | p4) +
     plot_annotation(
       title = "Global Population Dynamics: Humans, Farmed Animals, and Wildlife",
-      subtitle = "A comparative analysis of population trends across sentient beings (1950-2025)",
-      #caption = "Data: Welfare Analysis Framework | Method: 32-82 Classification"
+      subtitle = "A comparative analysis of population trends across sentient beings (1950-2025)"
     ) +
     plot_layout(guides = "collect") &
     theme(legend.position = "bottom")
   
-  # Save using your existing universal save function
+  # Save plots
   universal_ggsave(final_plot, "four_panel_population_comparison", output_dir,
                    pdf_width = 16, pdf_height = 10)
   
-  # Also create individual panels for flexibility
-  universal_ggsave(p1, "population_humans_only", output_dir, 
+  # Individual panels
+  universal_ggsave(p1, "population_humans_only", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p2, "population_farmed_only", output_dir,
+  universal_ggsave(p2, "population_farmed_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p3, "population_wild_only", output_dir,
+  universal_ggsave(p3, "population_wild_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p4, "population_comparison_log", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
-  # Restore original theme
+  # Restore theme
   theme_set(original_theme)
   
   cat("Four-panel population comparison plots saved to:", output_dir, "\n")
 }
 
-#' Create four-panel NC_tot (total neurons) comparison plots
+#' Create four-panel NC_tot (total neurons) comparison plots with stacked areas
 #' 
 #' @param data The integrated calc_tseries dataset
 #' @param output_dir Directory for saving visualizations
@@ -1596,27 +1647,88 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
   # Ensure NC_tot column exists
   data <- ensure_nc_columns(data)
   
-  # Prepare NC_tot data by group
-  human_nc_tot <- data %>% 
+  # Prepare human NC_tot data (single category)
+  human_nc_tot <- data %>%
     filter(Category == "Humans") %>%
     select(Year, NC_tot) %>%
-    filter(!is.na(NC_tot))
+    filter(!is.na(NC_tot), NC_tot > 0)
   
+  # Prepare farmed animal NC_tot data
   farmed_nc_tot <- data %>%
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
-    group_by(Year) %>%
+    select(Year, Category, NC_tot) %>%
+    filter(!is.na(NC_tot), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Simplify categories - show major animals separately
+      Category_simplified = case_when(
+        Category == "Fish" ~ "Fish",
+        Category == "Chickens" ~ "Chickens", 
+        Category == "Pigs" ~ "Pigs",
+        Category == "Goats" ~ "Goats",
+        Category == "Cattle" ~ "Cattle",
+        Category == "Sheep" ~ "Sheep",
+        TRUE ~ "Other Farmed Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
     summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
-    filter(NC_tot > 0)
+    rename(Category = Category_simplified)
   
+  # Get the most recent year to determine ordering
+  most_recent_year <- max(farmed_nc_tot$Year, na.rm = TRUE)
+  
+  # Calculate ordering based on most recent year's values (largest to smallest)
+  category_order <- farmed_nc_tot %>%
+    filter(Year == most_recent_year) %>%
+    arrange(desc(NC_tot)) %>%
+    pull(Category)
+  
+  # Apply the ordering as a factor
+  farmed_nc_tot <- farmed_nc_tot %>%
+    mutate(Category = factor(Category, levels = category_order))
+  
+  # Prepare wild animal NC_tot data
   wild_nc_tot <- data %>%
     filter(Group == "Wild Animals") %>%
+    select(Year, Category, NC_tot) %>%
+    filter(!is.na(NC_tot), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Simplify categories - only show arthropods separately
+      Category_simplified = case_when(
+        Category == "Wild terrestrial arthropods" ~ "Wild terrestrial arthropods",
+        TRUE ~ "Other Wild Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified)
+  
+  # Get ordering for wild animals (arthropods should be on top as they're larger)
+  wild_most_recent <- max(wild_nc_tot$Year, na.rm = TRUE)
+  wild_category_order <- wild_nc_tot %>%
+    filter(Year == wild_most_recent) %>%
+    arrange(desc(NC_tot)) %>%
+    pull(Category)
+  
+  wild_nc_tot <- wild_nc_tot %>%
+    mutate(Category = factor(Category, levels = wild_category_order))
+  
+  # Aggregated totals for the comparison panel
+  farmed_total <- farmed_nc_tot %>%
     group_by(Year) %>%
     summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
     filter(NC_tot > 0)
   
-  # Set theme for this function (temporary override)
+  wild_total <- wild_nc_tot %>%
+    group_by(Year) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    filter(NC_tot > 0)
+  
+  # Set theme
   original_theme <- theme_get()
-  theme_set(theme_minimal(base_size = 12) + 
+  theme_set(theme_minimal(base_size = 12) +
               theme(
                 plot.title = element_text(face = "bold", size = 14),
                 plot.subtitle = element_text(size = 11, color = "grey30"),
@@ -1624,99 +1736,125 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
                 panel.grid.minor = element_blank(),
                 panel.border = element_blank(),
                 axis.ticks = element_line(color = "grey70"),
-                axis.line = element_line(color = "grey70"),
-                text = element_text(family = "")  # Use default system font
+                axis.line = element_line(color = "grey70")
               ))
   
-  # Beautiful color palette inspired by your research domain
-  colors <- c(Humans = "#2E86AB", Farmed = "#F24236", Wild = "#27AE60")
+  # Color palettes
+  main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")
   
-  # Panel 1: Human Total Neurons
+  # Panel 1: Human Total Neurons (simple area)
   p1 <- ggplot(human_nc_tot, aes(x = Year, y = NC_tot)) +
-    geom_area(alpha = 0.7, fill = colors["Humans"]) +
-    geom_line(color = colors["Humans"], size = 1.2) +
+    geom_area(alpha = 0.7, fill = main_colors["Humans"]) +
+    geom_line(color = main_colors["Humans"], size = 1.2) +
     scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
-    labs(title = "Human Total Neurons", 
-         #subtitle = "Aggregate neural capacity",
+    labs(title = "Human Total Neurons",
          y = "Total Neurons (Trillions)") +
     theme(plot.title = element_text(size = 14, face = "bold"))
   
-  # Panel 2: Farmed Animals Total Neurons
-  p2 <- ggplot(farmed_nc_tot, aes(x = Year, y = NC_tot)) +
-    geom_area(alpha = 0.7, fill = colors["Farmed"]) +
-    geom_line(color = colors["Farmed"], size = 1.2) +
-    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
-    labs(title = "Farmed Animal Total Neurons", 
-         #subtitle = "Agricultural neural biomass",
-         y = "Total Neurons (Trillions)") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
+  # Panel 2: Farmed Animals Total Neurons (stacked area chart)
+  # Create a named vector for colors based on the actual categories present
+  farmed_colors <- c("Chickens" = "#FF0000",        # Red
+                     "Pigs" = "#FFC0CB",            # Pink  
+                     "Goats" = "#CC7722",           # Ochre
+                     "Sheep" = "#32CD32",           # Green
+                     "Cattle" = "#8B4513",          # Brown
+                     "Fish" = "#20B2AA",            # Teal
+                     "Other Farmed Animals" = "#FFD39B") # Orange
   
-  # Panel 3: Wild Animals Total Neurons
-  p3 <- ggplot(wild_nc_tot, aes(x = Year, y = NC_tot)) +
-    geom_area(alpha = 0.7, fill = colors["Wild"]) +
-    geom_line(color = colors["Wild"], size = 1.2) +
+  # Filter to only colors for categories that exist
+  used_farmed_colors <- farmed_colors[names(farmed_colors) %in% unique(farmed_nc_tot$Category)]
+  
+  p2 <- ggplot(farmed_nc_tot, aes(x = Year, y = NC_tot, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_farmed_colors) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Farmed Animal Total Neurons",
+         y = "Total Neurons (Trillions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 8)) +
+    guides(fill = guide_legend(nrow = 2))
+  
+  # Panel 3: Wild Animals Total Neurons (stacked area chart)
+  wild_colors <- c("Wild terrestrial arthropods" = "#8B4513", 
+                   "Other Wild Animals" = "#90EE90")
+  
+  used_wild_colors <- wild_colors[names(wild_colors) %in% unique(wild_nc_tot$Category)]
+  
+  p3 <- ggplot(wild_nc_tot, aes(x = Year, y = NC_tot, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_wild_colors) +
     scale_y_continuous(labels = label_number(scale = 1e-15, suffix = "Q")) +
-    labs(title = "Wild Animal Total Neurons", 
-         #subtitle = "Natural neural diversity",
-         y = "Total Neurons (Quadrillions)") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
+    labs(title = "Wild Animal Total Neurons",
+         y = "Total Neurons (Quadrillions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 9))
   
-  # Panel 4: Combined comparison (log scale for visibility)
+  # Panel 4: Combined comparison (log scale) with labels
   combined_data <- bind_rows(
     human_nc_tot %>% mutate(Group = "Humans"),
-    farmed_nc_tot %>% mutate(Group = "Farmed Animals"),  
-    wild_nc_tot %>% mutate(Group = "Wild Animals")
+    farmed_total %>% mutate(Group = "Farmed Animals"),
+    wild_total %>% mutate(Group = "Wild Animals")
   ) %>%
     mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
   
-  p4 <- ggplot(combined_data, aes(x = Year, y = NC_tot, 
+  p4 <- ggplot(combined_data, aes(x = Year, y = NC_tot,
                                   color = Group, fill = Group)) +
     geom_area(alpha = 0.4, position = "identity") +
     geom_line(size = 1.2) +
+    # Add labels at the end of each line
+    geom_text(data = combined_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
     scale_y_log10(labels = label_number()) +
-    scale_color_manual(values = c("Humans" = colors["Humans"], 
-                                  "Farmed Animals" = colors["Farmed"],
-                                  "Wild Animals" = colors["Wild"])) +
-    scale_fill_manual(values = c("Humans" = colors["Humans"], 
-                                 "Farmed Animals" = colors["Farmed"],
-                                 "Wild Animals" = colors["Wild"])) +
-    labs(title = "Comparative Total Neuron Trends", 
+    scale_color_manual(values = main_colors) +
+    scale_fill_manual(values = main_colors) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(combined_data$Year), 
+                                  max(combined_data$Year) + 8)) +
+    labs(title = "Comparative Total Neuron Trends",
          subtitle = "Log scale reveals neural capacity distribution",
          y = "Total Neurons (Log Scale)",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
-          legend.position = "bottom")
+          legend.position = "none")  # Remove legend since we have direct labels
   
   # Combine with patchwork
   final_plot <- (p1 | p2) / (p3 | p4) +
     plot_annotation(
       title = "Global Neural Capacity: Aggregate Forebrain Neurons Across Sentient Beings",
-      subtitle = "A comparative analysis of total neural capacity trends (1950-2025)",
-      #caption = "Data: Welfare Analysis Framework | NC_tot = population × forebrain neurons"
+      subtitle = "A comparative analysis of total neural capacity trends (1950-2025)"
     ) +
     plot_layout(guides = "collect") &
     theme(legend.position = "bottom")
   
-  # Save using your existing universal save function
+  # Save plots
   universal_ggsave(final_plot, "four_panel_nc_tot_comparison", output_dir,
                    pdf_width = 16, pdf_height = 10)
   
-  # Also create individual panels for flexibility
-  universal_ggsave(p1, "nc_tot_humans_only", output_dir, 
+  # Individual panels
+  universal_ggsave(p1, "nc_tot_humans_only", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p2, "nc_tot_farmed_only", output_dir,
+  universal_ggsave(p2, "nc_tot_farmed_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p3, "nc_tot_wild_only", output_dir,
+  universal_ggsave(p3, "nc_tot_wild_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p4, "nc_tot_comparison_log", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
-  # Restore original theme
+  # Restore theme
   theme_set(original_theme)
   
   cat("Four-panel NC_tot comparison plots saved to:", output_dir, "\n")
 }
-
 
 #' Create NC net utility comparison plots with different category exclusions
 #' 

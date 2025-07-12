@@ -193,7 +193,8 @@ analyze_welfare_data <- function(data_path,
 ensure_nc_columns <- function(data) {
   # Check if NC columns already exist
   if(!("NC_utility" %in% colnames(data)) || 
-     !("NC_tot" %in% colnames(data))) {
+     !("NC_tot" %in% colnames(data)) ||
+     !("NC_apot" %in% colnames(data)))    {
     
     # If not, calculate them based on available data
     if("forebrain_neurons" %in% colnames(data) && 
@@ -211,6 +212,7 @@ ensure_nc_columns <- function(data) {
       data <- data %>%
         mutate(
           NC_potential = forebrain_neurons / human_fneurons,
+          NC_apot = aliveatanytime * NC_potential,
           NC_utility = aliveatanytime * NC_potential * Welfare_level,
           NC_tot = aliveatanytime * forebrain_neurons
         )
@@ -724,7 +726,274 @@ calculate_factor_changes <- function(data) {
 }
 
 
-
+#' Create NC apot (animal potential) trend plots with progressive category exclusions
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_nc_apot_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Filter out rows with NA values for NC apot
+  filtered_data_nc_apot <- data %>%
+    filter(!is.na(NC_apot), !is.na(aliveatanytime))
+  
+  # NC apot over time - all categories
+  p_nc_apot <- ggplot(filtered_data_nc_apot, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_data_nc_apot %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_data_nc_apot$Year), 
+                                  max(filtered_data_nc_apot$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (1950-2025)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends.pdf"), 
+         plot = p_nc_apot, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods
+  filtered_nc_apot_n_wta <- filtered_data_nc_apot %>% 
+    filter(Category != "Wild terrestrial arthropods")
+  
+  p_nc_apot_n_wta <- ggplot(filtered_nc_apot_n_wta, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta$Year), 
+                                  max(filtered_nc_apot_n_wta$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta.pdf"), 
+         plot = p_nc_apot_n_wta, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish
+  filtered_nc_apot_n_wta_wfi <- filtered_nc_apot_n_wta %>% 
+    filter(Category != "Wild fish")
+  
+  p_nc_apot_n_wta_wfi <- ggplot(filtered_nc_apot_n_wta_wfi, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi.pdf"), 
+         plot = p_nc_apot_n_wta_wfi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans
+  filtered_nc_apot_n_wta_wfi_hum <- filtered_nc_apot_n_wta_wfi %>% 
+    filter(Category != "Humans")
+  
+  p_nc_apot_n_wta_wfi_hum <- ggplot(filtered_nc_apot_n_wta_wfi_hum, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi_hum %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi_hum$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi_hum$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish, No humans)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi_hum.pdf"), 
+         plot = p_nc_apot_n_wta_wfi_hum, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild birds
+  filtered_nc_apot_n_wta_wfi_hum_wbi <- filtered_nc_apot_n_wta_wfi_hum %>% 
+    filter(Category != "Wild birds")
+  
+  p_nc_apot_n_wta_wfi_hum_wbi <- ggplot(filtered_nc_apot_n_wta_wfi_hum_wbi, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi_hum_wbi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi_hum_wbi$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi_hum_wbi$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish, No humans, No w. birds)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi_hum_wbi.pdf"), 
+         plot = p_nc_apot_n_wta_wfi_hum_wbi, width = 10, height = 6)
+  
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild birds, no wild terrestrial mammals
+  filtered_nc_apot_n_wta_wfi_hum_wbi_wtm <- filtered_nc_apot_n_wta_wfi_hum_wbi %>% 
+    filter(Category != "Wild terrestrial mammals")
+  
+  p_nc_apot_n_wta_wfi_hum_wbi_wtm <- ggplot(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi_hum_wbi_wtm %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish, No humans, No w. birds, no wt. mammals)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi_hum_wbi_wtm.pdf"), 
+         plot = p_nc_apot_n_wta_wfi_hum_wbi_wtm, width = 10, height = 6)
+  
+  
+  # No wild terrestrial arthropods, no wild fish, no humans, no wild terrestrial mammals, no farmed fish
+  filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi <- filtered_nc_apot_n_wta_wfi_hum_wbi_wtm %>% 
+    filter(Category != "Fish")
+  
+  p_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi <- ggplot(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish, No humans, No w. bitds, No wt. mammals, No f. fish)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi_hum_wbi_wtm_ffi.pdf"), 
+         plot = p_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no w. birds, no wt. mammals, no f. fish, no chickens
+  filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch <- filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi %>% 
+    filter(Category != "Chickens")
+  
+  p_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch <- ggplot(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch, aes(x = Year, y = NC_apot, colour = Category, group = interaction(Group, Category))) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch %>% 
+                group_by(Category, Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 6, 
+              check_overlap = TRUE) +
+    scale_x_continuous(limits = c(min(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch$Year), 
+                                  max(filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch$Year) + 30)) +
+    labs(title = "NC Potential * Population Over Time (No wt. arthropods, No w. fish, No humans, No w. birds, No wt. mammals, No f. fish, No chickens)", 
+         y = "NC Potential * Population", 
+         x = "Year") +
+    theme_minimal() +   
+    theme(plot.title = element_text(size = 22, face = "bold"),     
+          axis.title.x = element_text(size = 24),     
+          axis.title.y = element_text(size = 24),      
+          axis.text.x = element_text(size = 10),     
+          axis.text.y = element_text(size = 10)) +
+    theme(legend.position = "none")
+  
+  ggsave(file.path(output_dir, "NC_apot_trends_n_wta_wfi_hum_wbi_wtm_ffi_fch.pdf"), 
+         plot = p_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch, width = 10, height = 6)
+  
+  # No wt. arthropods, no w. fish, no humans, no w. birds, no wt. mammals, no f. fish, no chickens, no wild birds
+  filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch_wbi <- filtered_nc_apot_n_wta_wfi_hum_wbi_wtm_ffi_fch %>% 
+    filter(Category != "Wild birds")
+  
+  cat("NC apot plots saved to:", output_dir, "\n")
+}
 
 
 #' Create NC utility trend plots with progressive category exclusions
@@ -1332,6 +1601,11 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
       mutate(NC_utility = aliveatanytime * NC_potential * Welfare_level)
   }
   
+  if("NC_apot" %in% names(extended_data)) {  # ADD THIS BLOCK
+    extended_data <- extended_data %>%
+      mutate(NC_apot = aliveatanytime * NC_potential)
+  }
+  
   if("NC_tot" %in% names(extended_data)) {
     extended_data <- extended_data %>%
       mutate(NC_tot = aliveatanytime * forebrain_neurons)
@@ -1630,7 +1904,8 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
   cat("Four-panel population comparison plots saved to:", output_dir, "\n")
 }
 
-#' Create four-panel NC_tot (total neurons) comparison plots with stacked areas
+
+#' Create four-panel NC_total comparison plots with stacked areas
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving visualizations
@@ -1857,15 +2132,242 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
 }
 
 
+#' Create four-panel NC_apot (aliveatanytime * NC_potential) comparison plots 
+#' with stacked areas [INCOMPLETE]
+#' 
+#' @param data The extended_integrated_calc_tseries dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_four_panel_nc_apot_plots <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  cat("Creating four-panel NC_apot comparison plots...\n")
+  
+  # Ensure NC_apot column exists
+  data <- ensure_nc_columns(data)
+  
+  # Prepare human NC_apot data (single category)
+  human_nc_apot <- data %>%
+    filter(Category == "Humans") %>%
+    select(Year, NC_apot) %>%
+    filter(!is.na(NC_apot), NC_apot > 0)
+  
+  # Prepare farmed animal NC_tot data
+  farmed_nc_apot <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    select(Year, Category, NC_apot) %>%
+    filter(!is.na(NC_apot), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year), #TODO: EDITS UP TO HERE UTH
+      # Simplify categories - show major animals separately
+      Category_simplified = case_when(
+        Category == "Fish" ~ "Fish",
+        Category == "Chickens" ~ "Chickens", 
+        Category == "Swine / Pigs" ~ "Swine / Pigs",
+        Category == "Goats" ~ "Goats",
+        Category == "Cattle" ~ "Cattle",
+        Category == "Sheep" ~ "Sheep",
+        TRUE ~ "Other Farmed Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified)
+  
+  # Get the most recent year to determine ordering
+  most_recent_year <- max(farmed_nc_tot$Year, na.rm = TRUE)
+  
+  # Calculate ordering based on most recent year's values (largest to smallest)
+  category_order <- farmed_nc_tot %>%
+    filter(Year == most_recent_year) %>%
+    arrange(desc(NC_tot)) %>%
+    pull(Category)
+  
+  # Apply the ordering as a factor
+  farmed_nc_tot <- farmed_nc_tot %>%
+    mutate(Category = factor(Category, levels = category_order))
+  
+  # Prepare wild animal NC_tot data
+  wild_nc_tot <- data %>%
+    filter(Group == "Wild Animals") %>%
+    select(Year, Category, NC_tot) %>%
+    filter(!is.na(NC_tot), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Simplify categories - only show arthropods separately
+      Category_simplified = case_when(
+        Category == "Wild terrestrial arthropods" ~ "Wild terrestrial arthropods",
+        TRUE ~ "Other Wild Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified)
+  
+  # Get ordering for wild animals (arthropods should be on top as they're larger)
+  wild_most_recent <- max(wild_nc_tot$Year, na.rm = TRUE)
+  wild_category_order <- wild_nc_tot %>%
+    filter(Year == wild_most_recent) %>%
+    arrange(desc(NC_tot)) %>%
+    pull(Category)
+  
+  wild_nc_tot <- wild_nc_tot %>%
+    mutate(Category = factor(Category, levels = wild_category_order))
+  
+  # Aggregated totals for the comparison panel
+  farmed_total <- farmed_nc_tot %>%
+    group_by(Year) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    filter(NC_tot > 0)
+  
+  wild_total <- wild_nc_tot %>%
+    group_by(Year) %>%
+    summarise(NC_tot = sum(NC_tot, na.rm = TRUE), .groups = "drop") %>%
+    filter(NC_tot > 0)
+  
+  # Set theme
+  original_theme <- theme_get()
+  theme_set(theme_minimal(base_size = 12) +
+              theme(
+                plot.title = element_text(face = "bold", size = 14),
+                plot.subtitle = element_text(size = 11, color = "grey30"),
+                strip.text = element_text(face = "bold"),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                axis.ticks = element_line(color = "grey70"),
+                axis.line = element_line(color = "grey70")
+              ))
+  
+  # Color palettes
+  main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#20B2AA", "Wild Animals" = "#8B4513")
+  
+  # Panel 1: Human Total Neurons (simple area)
+  p1 <- ggplot(human_nc_tot, aes(x = Year, y = NC_tot)) +
+    geom_area(alpha = 0.7, fill = main_colors["Humans"]) +
+    geom_line(color = main_colors["Humans"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Human Total Neurons",
+         y = "Total Neurons (Trillions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 2: Farmed Animals Total Neurons (stacked area chart)
+  # Create a named vector for colors based on the actual categories present
+  farmed_colors <- c("Chickens" = "#FF0000",        # Red
+                     "Pigs" = "#FFC0CB",            # Pink  
+                     "Goats" = "#CC7722",           # Ochre
+                     "Sheep" = "#32CD32",           # Green
+                     "Cattle" = "#8B4513",          # Brown
+                     "Fish" = "#20B2AA",            # Teal
+                     "Other Farmed Animals" = "#FFD39B") # Orange
+  
+  # Filter to only colors for categories that exist
+  used_farmed_colors <- farmed_colors[names(farmed_colors) %in% unique(farmed_nc_tot$Category)]
+  
+  p2 <- ggplot(farmed_nc_tot, aes(x = Year, y = NC_tot, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_farmed_colors) +
+    scale_y_continuous(labels = label_number(scale = 1e-12, suffix = "T")) +
+    labs(title = "Farmed Animal Total Neurons",
+         y = "Total Neurons (Trillions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 8)) +
+    guides(fill = guide_legend(nrow = 2))
+  
+  # Panel 3: Wild Animals Total Neurons (stacked area chart)
+  wild_colors <- c("Wild terrestrial arthropods" = "#8B4513", 
+                   "Other Wild Animals" = "#90EE90")
+  
+  used_wild_colors <- wild_colors[names(wild_colors) %in% unique(wild_nc_tot$Category)]
+  
+  p3 <- ggplot(wild_nc_tot, aes(x = Year, y = NC_tot, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_wild_colors) +
+    scale_y_continuous(labels = label_number(scale = 1e-15, suffix = "Q")) +
+    labs(title = "Wild Animal Total Neurons",
+         y = "Total Neurons (Quadrillions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 9))
+  
+  # Panel 4: Combined comparison (log scale) with labels
+  combined_data <- bind_rows(
+    human_nc_tot %>% mutate(Group = "Humans"),
+    farmed_total %>% mutate(Group = "Farmed Animals"),
+    wild_total %>% mutate(Group = "Wild Animals")
+  ) %>%
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+  
+  p4 <- ggplot(combined_data, aes(x = Year, y = NC_tot,
+                                  color = Group, fill = Group)) +
+    geom_area(alpha = 0.4, position = "identity") +
+    geom_line(size = 1.2) +
+    # Add labels at the end of each line
+    geom_text(data = combined_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_y_log10(labels = label_number()) +
+    scale_color_manual(values = main_colors) +
+    scale_fill_manual(values = main_colors) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(combined_data$Year), 
+                                  max(combined_data$Year) + 8)) +
+    labs(title = "Comparative Total Neuron Trends",
+         subtitle = "Log scale reveals neural capacity distribution",
+         y = "Total Neurons (Log Scale)",
+         color = "", fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "none")  # Remove legend since we have direct labels
+  
+  # Combine with patchwork
+  final_plot <- (p1 | p2) / (p3 | p4) +
+    plot_annotation(
+      title = "Global Neural Capacity: Aggregate Forebrain Neurons Across Sentient Beings",
+      subtitle = "A comparative analysis of total neural capacity trends (1950-2025)"
+    ) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  # Save plots
+  universal_ggsave(final_plot, "four_panel_nc_tot_comparison", output_dir,
+                   pdf_width = 16, pdf_height = 10)
+  
+  # Individual panels
+  universal_ggsave(p1, "nc_tot_humans_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p2, "nc_tot_farmed_stacked", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p3, "nc_tot_wild_stacked", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "nc_tot_comparison_log", output_dir,
+                   pdf_width = 10, pdf_height = 6)
+  
+  # Restore theme
+  theme_set(original_theme)
+  
+  cat("Four-panel NC_tot comparison plots saved to:", output_dir, "\n")
+}
 
 
 
-#' Create four-panel welfare score range plots with area fills
+#' Create four-panel human NC_utility with non-human animal score ranges with area 
+#' fills, unstacked [INCOMPLETE]
 #' 
 #' @param data extended_integrated_calc_tseries
 #' @param output_dir Directory for saving visualizations
 #' @return NULL (saves plots to files)
-create_four_panel_score_range_plots <- function(data, 
+create_four_panel_nc_count_range_plots <- function(data, 
                                                 output_dir = "visualizations") {
   
   # Create directory if it doesn't exist
@@ -2048,6 +2550,7 @@ create_four_panel_score_range_plots <- function(data,
   
   cat("Four-panel welfare score range plots saved to:", output_dir, "\n")
 }
+
 
 
 
@@ -2854,6 +3357,9 @@ create_utility_visualizations <- function(data,
   
   cat("Creating utility visualizations...\n")
   
+  #0. Create NC apot (aliveatanytime * NC_potential) plots
+  create_nc_apot_plots(data, output_dir)
+  
   # 1. Create NC utility plots
   create_nc_utility_plots(data, output_dir)
   
@@ -2872,18 +3378,18 @@ create_utility_visualizations <- function(data,
   #4c. Create four-panel welfare score range plot
   create_four_panel_score_range_plots(extended_data_for_net, output_dir)
   
-  # Commenting out due to not needed for fifth pass
-  # # 5. Create NC net utility comparisons
-  # create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
-  # 
-  # # 6. Create WR net utility comparisons
-  # create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
-  # 
-  # # 7. Create NC net total series
-  # create_nc_net_tot_series(extended_data_for_net, output_dir)
-  # 
-  # # 8. Create disaggregated plots with totals
-  # create_disaggregated_plots_with_totals(data, output_dir)
+  #Commenting out due to not needed for fifth pass
+  # 5. Create NC net utility comparisons
+  create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
+
+  # 6. Create WR net utility comparisons
+  create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
+
+  # 7. Create NC net total series
+  create_nc_net_tot_series(extended_data_for_net, output_dir)
+
+  # 8. Create disaggregated plots with totals
+  create_disaggregated_plots_with_totals(data, output_dir)
   
   cat("All utility visualizations completed successfully!\n")
 }

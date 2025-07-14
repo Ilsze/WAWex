@@ -2574,6 +2574,7 @@ create_four_panel_nc_score_range_plots <- function(data,
   return(p4)
 }
 
+
 #' Create three-panel nc_score_range fourth-panel-style plots with concave, 
 #' linear, and convex functional forms for nc-based welfare potential
 #' 
@@ -2590,6 +2591,9 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
   
   cat("Creating three-panel neuron count functional form plot...\n")
   
+  # Ensure NC_utility column exists
+  data <- ensure_nc_columns(data)
+  
   max_f_welfare_score <- 100
   max_w_welfare_score <- 0.001
   
@@ -2599,44 +2603,67 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
     select(Year, NC_utility) %>%
     filter(!is.na(NC_utility))
   
-  # Prepare data for Farmed animals (concave + convex)
-  # Helper for filtering farmed animals
-  farmed_filter <- Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")
+  # Prepare data for Farmed animals (concave + convex) - FIXED: removed negative sign from calculation
   farmed_NC_urange <- data %>%
-    filter(farmed_filter) %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    mutate(
+      # Apply transformations at row level, then multiply by welfare score
+      NC_urange_conc = max_f_welfare_score * aliveatanytime * NC_pot_conc * Welfare_level,
+      NC_urange_conv = max_f_welfare_score * aliveatanytime * NC_pot_conv * Welfare_level,
+      NC_urange_linear = max_f_welfare_score * NC_utility  # for reference
+    ) %>%
     group_by(Year) %>%
     summarise(
-      conc = sum(NC_pot_conc * aliveatanytime, na.rm = TRUE),
-      conv = sum(NC_pot_conv * aliveatanytime, na.rm = TRUE),
+      # Sum the transformed values, then make negative
+      NC_urange_conc = -sum(NC_urange_conc, na.rm = TRUE),
+      NC_urange_conv = -sum(NC_urange_conv, na.rm = TRUE),
+      NC_urange_linear = -sum(NC_urange_linear, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    mutate(
-      NC_urange_conc = -max_f_welfare_score * conc,
-      NC_urange_conv = -max_f_welfare_score * conv
-    ) %>%
-    select(Year, NC_urange_conc, NC_urange_conv) %>%
     filter(!is.na(NC_urange_conc) & !is.na(NC_urange_conv))
+  
+  View(farmed_NC_urange)
   
   # Prepare data for Wild animals (concave + convex)
   wild_NC_urange_base <- data %>%
     filter(Group == "Wild Animals") %>%
+    mutate(
+      # Apply transformations at row level, then multiply by welfare score
+      NC_urange_conc = max_w_welfare_score * aliveatanytime * NC_pot_conc * Welfare_level,
+      NC_urange_conv = max_w_welfare_score * aliveatanytime * NC_pot_conv * Welfare_level,
+      NC_urange_linear = max_w_welfare_score * NC_utility  # for reference
+    ) %>%
     group_by(Year) %>%
     summarise(
-      conc = sum(NC_pot_conc * aliveatanytime, na.rm = TRUE),
-      conv = sum(NC_pot_conv * aliveatanytime, na.rm = TRUE),
+      # Sum the transformed values
+      NC_urange_conc = sum(NC_urange_conc, na.rm = TRUE),
+      NC_urange_conv = sum(NC_urange_conv, na.rm = TRUE),
+      NC_urange_linear = sum(NC_urange_linear, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    mutate(
-      NC_urange_conc = max_w_welfare_score * conc,
-      NC_urange_conv = max_w_welfare_score * conv
-    ) %>%
-    select(Year, NC_urange_conc, NC_urange_conv) %>%
     filter(!is.na(NC_urange_conc) & !is.na(NC_urange_conv))
   
-  #Create both positive and negative versions for wild animals
-  wild_NC_urange_full <- bind_rows(wild_NC_urange_base %>% mutate(value_type = "positive"),
-                                   wild_NC_urange_base %>% mutate(NC_urange_conc = -NC_urange_conc, value_type = "negative"),
-                                   wild_NC_urange_base %>% mutate(NC_urange_conv = -NC_urange_conv, value_type = "negative"))
+  # Create both positive and negative versions for wild animals
+  wild_NC_urange_full_conc <- bind_rows(
+    wild_NC_urange_base %>% 
+      select(Year, NC_urange_conc) %>%
+      mutate(value_type = "positive"),
+    wild_NC_urange_base %>% 
+      select(Year, NC_urange_conc) %>%
+      mutate(NC_urange_conc = -NC_urange_conc, value_type = "negative")
+  )
+  
+  wild_NC_urange_full_conv <- bind_rows(
+    wild_NC_urange_base %>% 
+      select(Year, NC_urange_conv) %>%
+      mutate(value_type = "positive"),
+    wild_NC_urange_base %>% 
+      select(Year, NC_urange_conv) %>%
+      mutate(NC_urange_conv = -NC_urange_conv, value_type = "negative")
+  )
+  
+  View(wild_NC_urange_full_conc)
+  View(wild_NC_urange_full_conv)
   
   # Set theme
   original_theme <- theme_get()
@@ -2651,76 +2678,13 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
                 axis.line = element_line(color = "grey70")
               ))
   
-  # Color palette
+  # Color palette - FIXED: Added "Wild Animals Neg" mapping
   main_colors <- c("Humans" = "#2E86AB", 
                    "Farmed Animals" = "#20B2AA", 
-                   "Wild Animals" = "#8B4513")
+                   "Wild Animals" = "#8B4513",
+                   "Wild Animals Neg" = "#8B4513")  # Same color for negative
   
-  # Visual 1: Human line
-  v1 <- ggplot(human_nc_utility, aes(x = Year, y = NC_utility)) +
-    geom_line(color = main_colors["Humans"], size = 1.2) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
-    scale_y_continuous(labels = label_number()) +
-    labs(title = "Human Welfare Score",
-         y = "Welfare Score") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
-  
-  # Visual 2: Farmed animal concave 
-  v2 <- ggplot(farmed_NC_urange, aes(x = Year, y = NC_urange_conc)) + 
-    geom_area(alpha = 0.7, fill = main_colors["Farmed Animals"]) +
-    geom_line(color = main_colors["Farmed Animals"], size = 1.2) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
-    scale_y_continuous(labels = label_number()) +
-    labs(title = "Farmed Animal Welfare - Possible Range, Concave Neuron Potential",
-         y = "Welfare Score") +
-    theme(plot.title = element_text(size = 14, face = "bold"))  
-  
-  # Visual 3: Farmed animal convex
-  v3 <- ggplot(farmed_NC_urange, aes(x = Year, y = NC_urange_conv)) + 
-    geom_area(alpha = 0.7, fill = main_colors["Farmed Animals"]) +
-    geom_line(color = main_colors["Farmed Animals"], size = 1.2) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
-    scale_y_continuous(labels = label_number()) +
-    labs(title = "Farmed Animal Welfare - Possible Range, Convex Neuron Potential",
-         y = "Welfare Score") +
-    theme(plot.title = element_text(size = 14, face = "bold"))  
-  
-  # Visual 4: Wild animal concave
-  v4 <- ggplot(wild_NC_urange_full, aes(x = Year, y = NC_urange_conc)) + 
-    geom_area(data = wild_NC_urange_full %>% filter(value_type == "positive"),
-              alpha = 0.7, fill = main_colors["Wild Animals"]) +
-    geom_area(data = wild_NC_urange_full %>% filter(value_type == "negative"),
-              alpha = 0.7, fill = main_colors["Wild Animals"]) +
-    geom_line(data = wild_NC_urange_full %>% filter(value_type == "positive"),
-              color = main_colors["Wild Animals"], size = 1.2) +
-    geom_line(data = wild_NC_urange_full %>% filter(value_type == "negative"),
-              color = main_colors["Wild Animals"], size = 1.2) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
-    scale_y_continuous(labels = label_number()) +
-    labs(title = "Wild Animal Welfare - Possible Range, Concave Neuron Potential",
-         subtitle = paste0("Assuming average welfare score has a magnitude of ", max_w_welfare_score, " out of 100"),
-         y = "Welfare Score") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
-  
-  # Visual 5: Wild animal convex
-  v5 <- ggplot(wild_NC_urange_full, aes(x = Year, y = NC_urange_conv)) + 
-    geom_area(data = wild_NC_urange_full %>% filter(value_type == "positive"),
-              alpha = 0.7, fill = main_colors["Wild Animals"]) +
-    geom_area(data = wild_NC_urange_full %>% filter(value_type == "negative"),
-              alpha = 0.7, fill = main_colors["Wild Animals"]) +
-    geom_line(data = wild_NC_urange_full %>% filter(value_type == "positive"),
-              color = main_colors["Wild Animals"], size = 1.2) +
-    geom_line(data = wild_NC_urange_full %>% filter(value_type == "negative"),
-              color = main_colors["Wild Animals"], size = 1.2) +
-    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
-    scale_y_continuous(labels = label_number()) +
-    labs(title = "Wild Animal Welfare - Possible Range, Convex Neuron Potential",
-         subtitle = paste0("Assuming average welfare score has a magnitude of ", max_w_welfare_score, " out of 100"),
-         y = "Welfare Score") +
-    theme(plot.title = element_text(size = 14, face = "bold"))
-  
-  
-  # Panel 1: Combined comparison in 4th style. Concave.
+  # Panel 1: Combined comparison - CONCAVE
   combined_data_conc <- bind_rows(
     human_nc_utility %>% 
       rename(value = NC_utility) %>%
@@ -2729,12 +2693,16 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
       rename(value = NC_urange_conc) %>%
       select(Year, value) %>%
       mutate(Group = "Farmed Animals"),
-    wild_NC_urange_full %>%  # Use existing full data with value_type
+    wild_NC_urange_base %>%
       rename(value = NC_urange_conc) %>%
-      select(Year, value, value_type) %>%
-      mutate(Group = paste("Wild Animals", str_to_title(value_type)))
+      select(Year, value) %>%
+      mutate(Group = "Wild Animals"),
+    wild_NC_urange_base %>%
+      rename(value = NC_urange_conc) %>%
+      select(Year, value) %>%
+      mutate(value = -value, Group = "Wild Animals Neg")
   ) %>%
-    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals Positive", "Wild Animals Negative")))
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals", "Wild Animals Neg")))
   
   # Create separate positive and negative data for proper area fills
   combined_data_split_conc <- combined_data_conc %>%
@@ -2744,14 +2712,14 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
     )
   
   p1 <- ggplot(combined_data_split_conc, aes(x = Year)) +
-    # Area fills for positive values (wild animals positive)
-    geom_area(data = combined_data_split_conc %>% filter(Group == "Wild Animals Positive"),
+    # Area fills for positive values (wild animals)
+    geom_area(data = combined_data_split_conc %>% filter(Group == "Wild Animals"),
               aes(y = positive_value), 
               alpha = 0.4, fill = main_colors["Wild Animals"]) +
     # Area fills for negative values (wild animals negative and farmed)
-    geom_area(data = combined_data_split_conc %>% filter(Group == "Wild Animals Negative"),
+    geom_area(data = combined_data_split_conc %>% filter(Group == "Wild Animals Neg"),
               aes(y = negative_value), 
-              alpha = 0.4, fill = main_colors["Wild Animals"]) +
+              alpha = 0.4, fill = main_colors["Wild Animals Neg"]) +
     geom_area(data = combined_data_split_conc %>% filter(Group == "Farmed Animals"),
               aes(y = negative_value), 
               alpha = 0.4, fill = main_colors["Farmed Animals"]) +
@@ -2770,22 +2738,22 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
               check_overlap = TRUE) +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
     scale_color_manual(values = main_colors) +
-    # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data_conc$Year), 
                                   max(combined_data_conc$Year) + 8)) +
     scale_y_continuous(labels = label_number()) +
-    labs(title = "Welfare potential as concave transformation of relative neuron count",
+    labs(title = "Concave: sqrt(neuron count ratio)",
+         subtitle = "Diminishing returns to scale",
          y = "Welfare Score",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
-          legend.position = "none")  # Remove legend since we have direct labels
+          legend.position = "none")
   
+  # Panel 2: Linear (from input)
+  p2 <- linear_plot + 
+    labs(title = "Linear: neuron count ratio",
+         subtitle = "Proportional returns to scale")
   
-  # Panel 2: Borrowed from four-panel welfare score range figure
-  p2 <- linear_plot
-  
-  
-  #Panel 3: Combined comparison in 4th style. Convex
+  # Panel 3: Combined comparison - CONVEX
   combined_data_conv <- bind_rows(
     human_nc_utility %>% 
       rename(value = NC_utility) %>%
@@ -2794,13 +2762,17 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
       rename(value = NC_urange_conv) %>%
       select(Year, value) %>%
       mutate(Group = "Farmed Animals"),
-    wild_NC_urange_full %>%  # Use existing full data with value_type
+    wild_NC_urange_base %>%
       rename(value = NC_urange_conv) %>%
-      select(Year, value, value_type) %>%
-      mutate(Group = paste("Wild Animals", str_to_title(value_type)))
+      select(Year, value) %>%
+      mutate(Group = "Wild Animals"),
+    wild_NC_urange_base %>%
+      rename(value = NC_urange_conv) %>%
+      select(Year, value) %>%
+      mutate(value = -value, Group = "Wild Animals Neg")
   ) %>%
-    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals Positive", "Wild Animals Negative")))
-
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals", "Wild Animals Neg")))
+  
   # Create separate positive and negative data for proper area fills
   combined_data_split_conv <- combined_data_conv %>%
     mutate(
@@ -2809,14 +2781,14 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
     )
   
   p3 <- ggplot(combined_data_split_conv, aes(x = Year)) +
-    # Area fills for positive values (wild animals positive)
-    geom_area(data = combined_data_split_conv %>% filter(Group == "Wild Animals Positive"),
+    # Area fills for positive values (wild animals)
+    geom_area(data = combined_data_split_conv %>% filter(Group == "Wild Animals"),
               aes(y = positive_value), 
               alpha = 0.4, fill = main_colors["Wild Animals"]) +
     # Area fills for negative values (wild animals negative and farmed)
-    geom_area(data = combined_data_split_conv %>% filter(Group == "Wild Animals Negative"),
+    geom_area(data = combined_data_split_conv %>% filter(Group == "Wild Animals Neg"),
               aes(y = negative_value), 
-              alpha = 0.4, fill = main_colors["Wild Animals"]) +
+              alpha = 0.4, fill = main_colors["Wild Animals Neg"]) +
     geom_area(data = combined_data_split_conv %>% filter(Group == "Farmed Animals"),
               aes(y = negative_value), 
               alpha = 0.4, fill = main_colors["Farmed Animals"]) +
@@ -2835,27 +2807,28 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
               check_overlap = TRUE) +
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
     scale_color_manual(values = main_colors) +
-    # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data_conv$Year), 
                                   max(combined_data_conv$Year) + 8)) +
     scale_y_continuous(labels = label_number()) +
-    labs(title = "Welfare potential as convex transformation of relative neuron count",
+    labs(title = "Convex: (neuron count ratio)²",
+         subtitle = "Increasing returns to scale",
          y = "Welfare Score",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
-          legend.position = "none")  # Remove legend since we have direct labels
+          legend.position = "none")
   
-  # Combine three plots onto one figure with patchwork
+  # Combine three plots with patchwork
   final_plot <- (p1 | p2 | p3) +
     plot_annotation(
-      title = "Welfare Score Range Analysis: Varying welfare potential as a function of relative neuron count"
+      title = "Welfare Score Analysis: Different Transformations of Neuron Count Ratios",
+      subtitle = "Exploring how welfare potential might scale with relative neuron counts"
     ) +
     plot_layout(guides = "collect") &
-    theme(legend.position = "bottom")
+    theme(legend.position = "none")
   
   # Save plots
   universal_ggsave(final_plot, "three_panel_nc_func_form_check", output_dir,
-                   pdf_width = 18, pdf_height = 6)
+                   pdf_width = 20, pdf_height = 7)
   
   # Individual panels
   universal_ggsave(p1, "welfare_score_range_conc_4th_style", output_dir,

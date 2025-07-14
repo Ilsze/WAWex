@@ -1503,24 +1503,24 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
       category_data <- .x
       category_name <- .y$Category
       
+      # Check minimum data requirements
       if(nrow(category_data) < 3) {
-        warning(paste("Not enough data points for", category_name, "- skipping projection"))
-        return(category_data)
+        stop(paste("Not enough data points for", category_name, 
+                   "- need at least 3 points, found", nrow(category_data)))
       }
       
-      # Get the original year range
+      # Get the original year range and sort data
       original_years <- range(category_data$Year)
-      cat("\n", category_name, "original range:", original_years[1], "to", original_years[2])
-      
-      # Sort data by year
       category_data <- category_data %>% arrange(Year)
       
+      cat("\n", category_name, "original range:", original_years[1], "to", original_years[2])
+      
+      # Initialize with original data
       extended_data <- category_data
       
       # BACKWARD EXTENSION (if needed)
-      years_to_extend_back <- original_years[1] - target_min
-      if(years_to_extend_back > 0) {
-        years_before <- (target_min):(original_years[1] - 1)
+      if(original_years[1] > target_min) {
+        years_before <- target_min:(original_years[1] - 1)
         
         # Use first few years to establish backward trend
         early_data <- category_data %>% 
@@ -1530,12 +1530,13 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
           # Fit linear trend to early years
           early_model <- lm(aliveatanytime ~ Year, data = early_data)
           
-          # Project backward
-          backward_predictions <- predict(early_model, newdata = data.frame(Year = years_before))
-          backward_predictions <- pmax(backward_predictions, 0)  # No negative values
+          # Project backward (ensuring non-negative values)
+          backward_predictions <- predict(early_model, 
+                                          newdata = data.frame(Year = years_before))
+          backward_predictions <- pmax(backward_predictions, 0)
           
-          # Create backward extension rows
-          backward_rows <- category_data[1, ][rep(1, length(years_before)), ]
+          # Create backward extension rows by duplicating structure
+          backward_rows <- category_data[rep(1, length(years_before)), ]
           backward_rows$Year <- years_before
           backward_rows$aliveatanytime <- backward_predictions
           
@@ -1546,32 +1547,34 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
       }
       
       # FORWARD EXTENSION (if needed)
-      years_to_extend_forward <- target_max - original_years[2]
-      if(years_to_extend_forward > 0) {
-        years_after <- (original_years[2] + 1):(target_max)
+      if(original_years[2] < target_max) {
+        years_after <- (original_years[2] + 1):target_max
         
         # Use last few years to establish forward trend
         recent_data <- category_data %>% 
           tail(min(endpoint_years, nrow(category_data)))
         
         if(nrow(recent_data) >= 2) {
-          # Check if trend is relatively stable (low variability)
-          recent_cv <- sd(recent_data$aliveatanytime) / mean(recent_data$aliveatanytime)
+          # Calculate coefficient of variation to check stability
+          recent_mean <- mean(recent_data$aliveatanytime)
+          recent_cv <- sd(recent_data$aliveatanytime) / recent_mean
           
           if(recent_cv < 0.05) {
-            # If stable, use mean of recent years
-            forward_predictions <- rep(mean(recent_data$aliveatanytime), length(years_after))
+            # Stable trend: use mean of recent years
+            forward_predictions <- rep(recent_mean, length(years_after))
             cat(" - stable trend, using mean")
           } else {
-            # If trending, fit linear trend to recent years
+            # Trending: fit linear model to recent years
             recent_model <- lm(aliveatanytime ~ Year, data = recent_data)
-            forward_predictions <- predict(recent_model, newdata = data.frame(Year = years_after))
-            forward_predictions <- pmax(forward_predictions, 0)  # No negative values
+            forward_predictions <- predict(recent_model, 
+                                           newdata = data.frame(Year = years_after))
+            forward_predictions <- pmax(forward_predictions, 0)
             cat(" - trending, using linear extrapolation")
           }
           
           # Create forward extension rows
-          forward_rows <- category_data[nrow(category_data), ][rep(1, length(years_after)), ]
+          last_row_index <- nrow(category_data)
+          forward_rows <- category_data[rep(last_row_index, length(years_after)), ]
           forward_rows$Year <- years_after
           forward_rows$aliveatanytime <- forward_predictions
           
@@ -1581,45 +1584,46 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
         }
       }
       
-      # TRUNCATION: Filter to only include target years
+      # TRUNCATION: Keep only years within target range
       extended_data <- extended_data %>%
         filter(Year >= target_min & Year <= target_max) %>%
         arrange(Year)
       
-      # Report truncation if it occurred
+      # Report if truncation occurred
       if(original_years[1] < target_min || original_years[2] > target_max) {
         cat(" - truncated to target range")
       }
       
       cat("\n")
       
-      return(extended_data)
+      return(extended_data) #return if the data wasn't extended, but truncated
     }) %>%
     ungroup()
   
-  # Recalculate utility columns if they exist
-  if("WR_utility" %in% names(extended_data)) {
-    extended_data <- extended_data %>%
-      mutate(WR_utility = aliveatanytime * WR_potential * Welfare_level)
+  #If extensions were made, recalculate utility columns
+  # Check for required columns first
+  required_cols <- c("aliveatanytime", "WR_potential", "NC_potential", 
+                     "Welfare_level", "forebrain_neurons")
+  missing_cols <- setdiff(required_cols, names(extended_data))
+  
+  if(length(missing_cols) > 0) {
+    stop("Missing required columns for utility calculations: ", 
+         paste(missing_cols, collapse = ", "))
   }
   
-  if("NC_utility" %in% names(extended_data)) {
-    extended_data <- extended_data %>%
-      mutate(NC_utility = aliveatanytime * NC_potential * Welfare_level)
-  }
-  
-  if("NC_apot" %in% names(extended_data)) {  # ADD THIS BLOCK
-    extended_data <- extended_data %>%
-      mutate(NC_apot = aliveatanytime * NC_potential)
-  }
-  
-  if("NC_tot" %in% names(extended_data)) {
-    extended_data <- extended_data %>%
-      mutate(NC_tot = aliveatanytime * forebrain_neurons)
-  }
+  # Calculate utility metrics
+  extended_data <- extended_data %>%
+    mutate(
+      WR_utility = aliveatanytime * WR_potential * Welfare_level,
+      NC_utility = aliveatanytime * NC_potential * Welfare_level,
+      NC_apot = aliveatanytime * NC_potential,
+      NC_pot_conc = forebrain_neurons/human_fneurons #UTH
+      NC_tot = aliveatanytime * forebrain_neurons
+    )
   
   return(extended_data)
 }
+
 
 #' Visualize original vs extended trends for quality checking
 #' Called by prepare_data_for_net_series
@@ -2169,7 +2173,7 @@ create_four_panel_nc_apot_plots <- function(data, output_dir = "visualizations")
     select(Year, Category, NC_apot) %>%
     filter(!is.na(NC_apot), !is.na(Category)) %>%
     mutate(
-      Year = as.numeric(Year), #TODO: EDITS UP TO HERE UTH
+      Year = as.numeric(Year),
       # Simplify categories - show major animals separately
       Category_simplified = case_when(
         Category == "Fish" ~ "Fish",
@@ -2586,8 +2590,16 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
   
   cat("Creating three-panel neuron count functional form plot...\n")
   
-  #Prepare ...? What else can be inherited? UTH
-  # have to create 
+  #Prepare farmed animal concave NC_apot (aggregated and inverted)
+  max_f_welfare_score <- 100
+  farmed_NC_urange <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    group_by(Year) %>%
+    summarise(NC_apot_total = sum(NC_apot, na.rm = TRUE), .groups = "drop") %>% #EDIT UTH
+    mutate(NC_urange = max_f_welfare_score*NC_apot_total) %>%  #scale up due to range of welfare score
+    mutate(NC_urange = -NC_urange) %>%  # Reflect across x-axis
+    filter(!is.na(NC_urange))
+  
   
   
 }

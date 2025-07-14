@@ -31,10 +31,14 @@ calc_tseries <- calc_tseries %>%
     Category == "Sheep" ~ 504000000,
     Category == "Turkeys" ~ 86000000 )) %>% 
   mutate(NC_potential = forebrain_neurons/human_fneurons, 
-         NC_pop = aliveatanytime*NC_potential,
+         NC_pot_conc = sqrt(NC_potential), 
+         NC_pot_conv = NC_potential^2,
+         NC_apot = aliveatanytime*NC_potential,
          NC_utility = aliveatanytime*NC_potential*Welfare_level, 
-         WR_pop = aliveatanytime*WR_potential,
-         WR_utility = aliveatanytime*WR_potential*Welfare_level)
+         WR_apot = aliveatanytime*WR_potential,
+         WR_utility = aliveatanytime*WR_potential*Welfare_level
+         
+         )
 
 #save to file
 write.xlsx(calc_tseries, "first_pass/calc_tseries.xlsx")

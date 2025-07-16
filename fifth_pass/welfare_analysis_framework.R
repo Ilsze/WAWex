@@ -235,7 +235,8 @@ ensure_nc_columns <- function(data) {
 #' @return Updated dataset with all WR columns
 ensure_wr_columns <- function(data) {
   # Check if WR columns already exist
-  if(!("WR_utility" %in% colnames(data))) {
+  if(!("WR_utility" %in% colnames(data)) ||
+     !("WR_apot" %in% colnames(data))) {
     
     # If not, calculate them based on available data
     if("WR_potential" %in% colnames(data) && 
@@ -245,6 +246,7 @@ ensure_wr_columns <- function(data) {
       # Calculate WR columns
       data <- data %>%
         mutate(
+          WR_apot = aliveatanytime * WR_potential, 
           WR_utility = aliveatanytime * WR_potential * Welfare_level
         )
     } else {
@@ -1616,9 +1618,11 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
   # variables are actually extended by category_data[rep...] code
   extended_data <- extended_data %>%
     mutate(
+      WR_apot = aliveatanytime * WR_potential,
       WR_utility = aliveatanytime * WR_potential * Welfare_level,
+      NC_tot = aliveatanytime * forebrain_neurons,
+      NC_apot = aliveatanytime * NC_potential,
       NC_utility = aliveatanytime * NC_potential * Welfare_level, 
-      NC_tot = aliveatanytime * forebrain_neurons
     )
   
   return(extended_data)
@@ -2512,7 +2516,7 @@ create_four_panel_nc_score_range_plots <- function(data,
               alpha = 0.4, fill = main_colors["Wild Animals"]) +
     geom_area(data = combined_data_split %>% filter(Group == "Wild Animals Neg"),
               aes(y = negative_value), 
-              alpha = 0.4, fill = main_colors["Wild Animals Neg"]) +
+              alpha = 0.4, fill = main_colors["Wild Animals"]) +
     # Add area fills for negative values (farmed)
     geom_area(data = combined_data_split %>% filter(Group == "Farmed Animals"),
               aes(y = negative_value), 
@@ -2553,7 +2557,7 @@ create_four_panel_nc_score_range_plots <- function(data,
     theme(legend.position = "bottom")
   
   # Save plots
-  universal_ggsave(final_plot, "four_panel_welfare_score_range", output_dir,
+  universal_ggsave(final_plot, "four_panel_nc_welfare_score_range", output_dir,
                    pdf_width = 16, pdf_height = 10)
   
   # Individual panels
@@ -2608,8 +2612,8 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
     mutate(
       # Apply transformations at row level, then multiply by welfare score
-      NC_urange_conc = max_f_welfare_score * aliveatanytime * NC_pot_conc * Welfare_level,
-      NC_urange_conv = max_f_welfare_score * aliveatanytime * NC_pot_conv * Welfare_level,
+      NC_urange_conc = max_f_welfare_score * aliveatanytime * NC_pot_conc,
+      NC_urange_conv = max_f_welfare_score * aliveatanytime * NC_pot_conv,
       NC_urange_linear = max_f_welfare_score * NC_utility  # for reference
     ) %>%
     group_by(Year) %>%
@@ -2622,15 +2626,13 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
     ) %>%
     filter(!is.na(NC_urange_conc) & !is.na(NC_urange_conv))
   
-  View(farmed_NC_urange)
-  
   # Prepare data for Wild animals (concave + convex)
   wild_NC_urange_base <- data %>%
     filter(Group == "Wild Animals") %>%
     mutate(
       # Apply transformations at row level, then multiply by welfare score
-      NC_urange_conc = max_w_welfare_score * aliveatanytime * NC_pot_conc * Welfare_level,
-      NC_urange_conv = max_w_welfare_score * aliveatanytime * NC_pot_conv * Welfare_level,
+      NC_urange_conc = max_w_welfare_score * aliveatanytime * NC_pot_conc,
+      NC_urange_conv = max_w_welfare_score * aliveatanytime * NC_pot_conv,
       NC_urange_linear = max_w_welfare_score * NC_utility  # for reference
     ) %>%
     group_by(Year) %>%
@@ -2661,9 +2663,6 @@ create_three_panel_nc_func_form_check <- function(data, output_dir = "visualizat
       select(Year, NC_urange_conv) %>%
       mutate(NC_urange_conv = -NC_urange_conv, value_type = "negative")
   )
-  
-  View(wild_NC_urange_full_conc)
-  View(wild_NC_urange_full_conv)
   
   # Set theme
   original_theme <- theme_get()
@@ -2860,8 +2859,190 @@ create_four_panel_wr_score_range_plots <- function(data, output_dir = "visualiza
   
   # Ensure WR_utility column exists
   data <- ensure_wr_columns(data)
-  # Note to self: WR_apot has not been created
-}
+
+  max_f_welfare_score <- 100
+  max_w_welfare_score <- 0.001
+  
+  # Prepare human WR_utility data
+  human_wr_utility <- data %>%
+    filter(Category == "Humans") %>%
+    select(Year, WR_utility) %>%
+    filter(!is.na(WR_utility))
+  
+  # Prepare farmed animal WR_apot data (aggregated and inverted)
+  max_f_welfare_score <- 100 # due to CE
+  farmed_WR_urange <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    group_by(Year) %>%
+    summarise(WR_apot_total = sum(WR_apot, na.rm = TRUE), .groups = "drop") %>%
+    mutate(WR_urange = max_f_welfare_score*WR_apot_total) %>%  #scale up due to range of welfare score
+    mutate(WR_urange = -WR_urange) %>%  # Reflect across x-axis
+    filter(!is.na(WR_urange))
+  
+  # Prepare wild animal WR_apot data (aggregated, scaled down, with BOTH positive and negative)
+  max_w_welfare_score <- 0.001
+  wild_WR_urange_base <- data %>%
+    filter(Group == "Wild Animals") %>%
+    group_by(Year) %>%
+    summarise(WR_apot_total = sum(WR_apot, na.rm = TRUE), .groups = "drop") %>%
+    mutate(WR_urange = max_w_welfare_score*WR_apot_total) %>%  #scale up due to range of welfare score
+    filter(!is.na(WR_urange))
+  
+  # Create both positive and negative versions for wild animals
+  wild_WR_urange_full <- bind_rows(
+    wild_WR_urange_base %>% mutate(value_type = "positive"),
+    wild_WR_urange_base %>% mutate(WR_urange = -WR_urange, value_type = "negative")
+  )
+  
+  # Set theme
+  original_theme <- theme_get()
+  theme_set(theme_minimal(base_size = 12) +
+              theme(
+                plot.title = element_text(face = "bold", size = 14),
+                plot.subtitle = element_text(size = 11, color = "grey30"),
+                strip.text = element_text(face = "bold"),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                axis.ticks = element_line(color = "grey70"),
+                axis.line = element_line(color = "grey70")
+              ))
+  
+  # Color palette with updated farmed animal color
+  main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#20B2AA", "Wild Animals" = "#8B4513")
+  
+  # Panel 1: Human Welfare Score (line only, no fill)
+  p1 <- ggplot(human_wr_utility, aes(x = Year, y = WR_utility)) +
+    geom_line(color = main_colors["Humans"], size = 1.2) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
+    scale_y_continuous(labels = label_number()) +
+    labs(title = "Human Welfare Score",
+         y = "Welfare Score") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 2: Farmed Animal Welfare Score (inverted with area)
+  p2 <- ggplot(farmed_WR_urange, aes(x = Year, y = WR_urange)) +
+    geom_area(alpha = 0.7, fill = main_colors["Farmed Animals"]) +
+    geom_line(color = main_colors["Farmed Animals"], size = 1.2) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
+    scale_y_continuous(labels = label_number()) +
+    labs(title = "Farmed Animal Welfare - Possible Range",
+         y = "Welfare Score") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 3: Wild Animal Welfare Score (both positive and negative with areas)
+  p3 <- ggplot(wild_WR_urange_full, aes(x = Year, y = WR_urange)) +
+    geom_area(data = wild_WR_urange_full %>% filter(value_type == "positive"),
+              alpha = 0.7, fill = main_colors["Wild Animals"]) +
+    geom_area(data = wild_WR_urange_full %>% filter(value_type == "negative"),
+              alpha = 0.7, fill = main_colors["Wild Animals"]) +
+    geom_line(data = wild_WR_urange_full %>% filter(value_type == "positive"),
+              color = main_colors["Wild Animals"], size = 1.2) +
+    geom_line(data = wild_WR_urange_full %>% filter(value_type == "negative"),
+              color = main_colors["Wild Animals"], size = 1.2) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
+    scale_y_continuous(labels = label_number()) +
+    labs(title = "Wild Animal Welfare - Possible Range",
+         subtitle = paste0("Assuming average welfare score has a magnitude of ", max_w_welfare_score, " out of 100"),
+         y = "Welfare Score") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  wild_WR_urange_base_neg <- wild_WR_urange_base %>%
+    mutate(WR_urange = -WR_urange)
+  
+  # Panel 4: Combined comparison - need to combine all three with consistent naming
+  combined_data <- bind_rows(
+    human_wr_utility %>% 
+      rename(value = WR_utility) %>%
+      mutate(Group = "Humans"),
+    farmed_WR_urange %>% 
+      rename(value = WR_urange) %>%
+      select(Year, value) %>%
+      mutate(Group = "Farmed Animals"),
+    wild_WR_urange_base %>%  # Use base (positive) for the combined view
+      rename(value = WR_urange) %>%
+      select(Year, value) %>%
+      mutate(Group = "Wild Animals"),
+    wild_WR_urange_base_neg %>%  # Use base (negative) for the combined view
+      rename(value = WR_urange) %>%
+      select(Year, value) %>%
+      mutate(Group = "Wild Animals Neg")
+  ) %>%
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals", "Wild Animals Neg")))
+  
+  # Create separate positive and negative data for proper area fills
+  combined_data_split <- combined_data %>%
+    mutate(
+      positive_value = ifelse(value > 0, value, 0),
+      negative_value = ifelse(value < 0, value, 0)
+    )
+  
+  p4 <- ggplot(combined_data_split, aes(x = Year)) +
+    # no fill for human values
+    # negative line and fills for wild animals
+    geom_area(data = combined_data_split %>% filter(Group == "Wild Animals"),
+              aes(y = positive_value), 
+              alpha = 0.4, fill = main_colors["Wild Animals"]) +
+    geom_area(data = combined_data_split %>% filter(Group == "Wild Animals Neg"),
+              aes(y = negative_value), 
+              alpha = 0.4, fill = main_colors["Wild Animals"]) +
+    # Add area fills for negative values (farmed)
+    geom_area(data = combined_data_split %>% filter(Group == "Farmed Animals"),
+              aes(y = negative_value), 
+              alpha = 0.4, fill = main_colors["Farmed Animals"]) +
+    # Add lines for all groups
+    geom_line(data = combined_data,
+              aes(y = value, color = Group), 
+              size = 1.2) +
+    # Add labels at the end of each line
+    geom_text(data = combined_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(y = value, label = Group, color = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
+    scale_color_manual(values = main_colors) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(combined_data$Year), 
+                                  max(combined_data$Year) + 8)) +
+    scale_y_continuous(labels = label_number()) +
+    labs(title = "Introducing Welfare Score",
+         subtitle = "Comparative welfare scores across sentient beings",
+         y = "Welfare Score",
+         color = "", fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "none")  # Remove legend siwre we have direct labels
+  
+  # Combine with patchwork
+  final_plot <- (p1 | p2) / (p3 | p4) +
+    plot_annotation(
+      title = "Welfare Score Analysis: Introducing Utility Considerations",
+      subtitle = "Exploring welfare scores across humans, farmed animals, and wildlife"
+    ) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  # Save plots
+  universal_ggsave(final_plot, "four_panel_wr_welfare_score_range", output_dir,
+                   pdf_width = 16, pdf_height = 10)
+  
+  # Individual panels
+  universal_ggsave(p1, "welfare_score_humans_only", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p2, "welfare_score_farmed_inverted", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p3, "welfare_score_wild_scaled_inverted", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "welfare_score_introducing", output_dir,
+                   pdf_width = 10, pdf_height = 6)
+  
+  # Restore theme
+  theme_set(original_theme)
+  
+  cat("Four-panel welfare score range plots saved to:", output_dir, "\n")
+  }
 
 
 #' Create four-panel welfare score plots with CE welfare score estimates
@@ -3681,8 +3862,6 @@ create_utility_visualizations <- function(data,
   # 3. Prepare data for net series
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
-  View(extended_data_for_net)
-  
   # # 4a. Create four-panel population plot
   # create_four_panel_population_plots(extended_data_for_net, output_dir)
   # 
@@ -3692,29 +3871,29 @@ create_utility_visualizations <- function(data,
   # #4c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
   # create_four_panel_nc_apot_plots(extended_data_for_net, output_dir)
   # 
-  # #4d. Create four-panel NC score range
-  p4_from_four_panel_NC_score_range <- 
+  #4d. Create four-panel NC score range
+  p4_from_four_panel_NC_score_range <-
     create_four_panel_nc_score_range_plots(extended_data_for_net, output_dir)
   
-  #5a. Create three-panel NC functional form changes [INCOMPLETE]
-  create_three_panel_nc_func_form_check(extended_data_for_net, output_dir, p4_from_four_panel_NC_score_range)
+  # #5a. Create three-panel NC functional form changes 
+  # create_three_panel_nc_func_form_check(extended_data_for_net, output_dir, p4_from_four_panel_NC_score_range)
   
   #5b. Create four-panel WR score range [INCOMPLETE]
-  #create_four_panel_wr_score_range_plots(extended_data_for_net, output_dir) 
+  create_four_panel_wr_score_range_plots(extended_data_for_net, output_dir)
   
   #5c. Something to do with different measures for human welare
   
   #Commenting out due to not needed for fifth pass
-  # # 5. Create NC net utility comparisons
+  # # 6. Create NC net utility comparisons
   # create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
   # 
-  # # 6. Create WR net utility comparisons
+  # # 7. Create WR net utility comparisons
   # create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
   # 
-  # # 7. Create NC net total series
+  # # 8. Create NC net total series
   # create_nc_net_tot_series(extended_data_for_net, output_dir)
   # 
-  # # 8. Create disaggregated plots with totals
+  # # 9. Create disaggregated plots with totals
   # create_disaggregated_plots_with_totals(data, output_dir)
   
   cat("All utility visualizations completed successfully!\n")

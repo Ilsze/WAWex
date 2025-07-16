@@ -96,7 +96,7 @@ create_four_panel_nc_score_range_plots <- function(data,
     geom_hline(yintercept = 0, color = "grey70", linetype = "dashed") +
     scale_y_continuous(labels = label_number()) +
     labs(title = "Wild Animal Welfare - Possible Range",
-         subtitle = paste0("Assuming average welfare score is 1/", scaled_by, " as intense as humans'"),
+         subtitle = paste0("Assuming average welfare score has a magnitude of ", max_w_welfare_score, " out of 100"),
          y = "Welfare Score") +
     theme(plot.title = element_text(size = 14, face = "bold"))
   
@@ -197,3 +197,6 @@ create_four_panel_nc_score_range_plots <- function(data,
   
   cat("Four-panel welfare score range plots saved to:", output_dir, "\n")
 }
+
+
+

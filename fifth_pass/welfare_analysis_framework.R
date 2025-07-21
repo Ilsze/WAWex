@@ -5,7 +5,7 @@
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
-       patchwork, hrbrthemes, scales, gt)
+       patchwork, hrbrthemes, scales, gt, treemap)
 
 #' Universal plot saving function that handles all output formats automatically
 #' 

@@ -30,26 +30,30 @@ create_utility_visualizations <- function(data,
   # 3. Prepare data for net series
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
-  # 4a. Create four-panel population plot
-  create_four_panel_population_plots(extended_data_for_net, output_dir)
+  # 4a. Create tables
+  create_population_tables_n_wta_wfi_fbe(extended_data_for_net, output_dir)
+  create_population_tables(extended_data_for_net, output_dir)
   
-  #4b. Create four-panel NC_tot plot
-  create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)
+  # # 5a. Create four-panel population plot
+  # create_four_panel_population_plots(extended_data_for_net, output_dir)
+  # 
+  # #5b. Create four-panel NC_tot plot
+  # create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)
+  # 
+  # #5c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
+  # create_four_panel_nc_apot_plots(extended_data_for_net, output_dir)
+  # 
+  # #5d. Create four-panel NC score range
+  # p4_from_four_panel_NC_score_range <-
+  #   create_four_panel_nc_score_range_plots(extended_data_for_net, output_dir)
+  # 
+  # # #6a. Create three-panel NC functional form changes 
+  # # create_three_panel_nc_func_form_check(extended_data_for_net, output_dir, p4_from_four_panel_NC_score_range)
+  # 
+  # #6b. Create four-panel WR score range 
+  # create_four_panel_wr_score_range_plots(extended_data_for_net, output_dir)
   
-  #4c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
-  create_four_panel_nc_apot_plots(extended_data_for_net, output_dir)
-  
-  #4d. Create four-panel NC score range
-  p4_from_four_panel_NC_score_range <-
-    create_four_panel_nc_score_range_plots(extended_data_for_net, output_dir)
-  
-  # #5a. Create three-panel NC functional form changes 
-  # create_three_panel_nc_func_form_check(extended_data_for_net, output_dir, p4_from_four_panel_NC_score_range)
-  
-  #5b. Create four-panel WR score range [INCOMPLETE]
-  create_four_panel_wr_score_range_plots(extended_data_for_net, output_dir)
-  
-  #5c. Something to do with different measures for human welare
+  #6c. Something to do with different measures for human welare
   
   #Commenting out due to not needed for fifth pass
   # # 6. Create NC net utility comparisons

@@ -5,7 +5,7 @@
 library(pacman)
 p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
-       patchwork, hrbrthemes, scales)
+       patchwork, hrbrthemes, scales, gt)
 
 #' Universal plot saving function that handles all output formats automatically
 #' 
@@ -1730,7 +1730,418 @@ prepare_data_for_net_series <- function(data,
 }
 
 
+#' Create styled population tables with color-coded rows
+#' 
+#' @param data The extended_integrated_calc_tseries dataset
+#' @param output_dir Directory for saving tables
+#' @return NULL (saves tables to files)
+create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(paste0(output_dir, "/tables"))) {
+    dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
+  }
+  
+  cat("Creating styled population tables...\n")
+  
+  # Define color palette matching the four-panel plots
+  group_colors <- c(
+    "Humans" = "#2E86AB",
+    "Wild Animals" = "#8B4513", 
+    "Farmed Animals" = "#20B2AA"
+  )
+  
+  # Filter data for 2023 and exclude specified categories
+  excluded_categories <- c("Wild terrestrial arthropods", "Wild fish", "Bees")
+  
+  table_data <- data %>%
+    filter(Year == 2023, 
+           !Category %in% excluded_categories,
+           !is.na(aliveatanytime)) %>%
+    mutate(
+      # Add "Farmed" prefix to farmed animal categories
+      Animal_Category = case_when(
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ paste("Farmed", Category),
+        TRUE ~ Category
+      ),
+      # Assign group colors
+      Group_Clean = case_when(
+        Category == "Humans" ~ "Humans",
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
+        Group == "Wild Animals" ~ "Wild Animals",
+        TRUE ~ "Other"
+      )
+    ) %>%
+    arrange(desc(aliveatanytime)) %>%
+    select(Animal_Category, aliveatanytime, Group_Clean)
+  
+  # TABLE 1: Individual Categories
+  table1 <- table_data %>%
+    select(Animal_Category, aliveatanytime, Group_Clean) %>%
+    gt() %>%
+    cols_hide(Group_Clean) %>%
+    cols_label(
+      Animal_Category = "Animal Category",
+      aliveatanytime = "Population (Alive at any time)"
+    ) %>%
+    fmt_number(
+      columns = aliveatanytime,
+      suffixing = TRUE,
+      decimals = 2
+    ) %>%
+    # Add color coding based on group
+    tab_style(
+      style = cell_fill(color = group_colors["Humans"]),
+      locations = cells_body(
+        rows = Group_Clean == "Humans"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Wild Animals"]),
+      locations = cells_body(
+        rows = Group_Clean == "Wild Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Farmed Animals"]),
+      locations = cells_body(
+        rows = Group_Clean == "Farmed Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold"),
+      locations = cells_body()
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold", size = px(16)),
+      locations = cells_column_labels()
+    ) %>%
+    tab_style(
+      style = cell_fill(color = "grey20"),
+      locations = cells_column_labels()
+    ) %>%
+    tab_header(
+      title = md("**Population by Animal Category (2023)**"),
+      subtitle = "Excluding wild terrestrial arthropods, wild fish, and bees"
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
+      locations = cells_title(groups = "title")
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey50", size = px(14)),
+      locations = cells_title(groups = "subtitle")
+    ) %>%
+    tab_options(
+      table.font.size = px(14),
+      heading.align = "left",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden",
+      column_labels.border.bottom.width = px(2),
+      column_labels.border.bottom.color = "grey20"
+    )
+  
+  # TABLE 2: Aggregated Groups
+  table2_data <- data %>%
+    filter(Year == 2023,
+           !Category %in% excluded_categories,
+           !is.na(aliveatanytime)) %>%
+    mutate(
+      Animal_Group = case_when(
+        Category == "Humans" ~ "Humans",
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
+        Group == "Wild Animals" ~ "Wild Animals",
+        TRUE ~ "Other"
+      )
+    ) %>%
+    group_by(Animal_Group) %>%
+    summarise(
+      Population = sum(aliveatanytime, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(Population))
+  
+  table2 <- table2_data %>%
+    gt() %>%
+    cols_label(
+      Animal_Group = "Animal Group",
+      Population = "Population (Alive at any time)"
+    ) %>%
+    fmt_number(
+      columns = Population,
+      suffixing = TRUE,
+      decimals = 2
+    ) %>%
+    # Add color coding based on group
+    tab_style(
+      style = cell_fill(color = group_colors["Humans"]),
+      locations = cells_body(
+        rows = Animal_Group == "Humans"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Wild Animals"]),
+      locations = cells_body(
+        rows = Animal_Group == "Wild Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Farmed Animals"]),
+      locations = cells_body(
+        rows = Animal_Group == "Farmed Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold"),
+      locations = cells_body()
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold", size = px(16)),
+      locations = cells_column_labels()
+    ) %>%
+    tab_style(
+      style = cell_fill(color = "grey20"),
+      locations = cells_column_labels()
+    ) %>%
+    tab_header(
+      title = md("**Population by Animal Group (2023)**"),
+      subtitle = "Aggregated totals excluding wild terrestrial arthropods, wild fish, and bees"
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
+      locations = cells_title(groups = "title")
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey50", size = px(14)),
+      locations = cells_title(groups = "subtitle")
+    ) %>%
+    tab_options(
+      table.font.size = px(14),
+      heading.align = "left",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden",
+      column_labels.border.bottom.width = px(2),
+      column_labels.border.bottom.color = "grey20"
+    )
+  
+  # Save tables
+  #gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_wta_wfi_fbe.html"))
+  gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_wta_wfi_fbe.png"))
+  
+  #gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_wta_wfi_fbe.html"))
+  gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_wta_wfi_fbe.png"))
+  
+  cat("Styled population tables saved to:", output_dir, "\n")
+  cat("Files created: population_by_category_2023_wta_wfi_fbe/.png and population_by_group_2023_wta_wfi_fbe/.png\n")
+}
 
+#' Create styled population tables with color-coded rows
+#' 
+#' @param data The extended_integrated_calc_tseries dataset
+#' @param output_dir Directory for saving tables
+#' @return NULL (saves tables to files)
+create_population_tables <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(paste0(output_dir, "/tables"))) {
+    dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
+  }
+  
+  cat("Creating styled population tables...\n")
+  
+  # Load required packages for table styling
+  if(!require(gt)) {
+    stop("Package 'gt' is required for styled tables. Install with: install.packages('gt')")
+  }
+  if(!require(dplyr)) {
+    stop("Package 'dplyr' is required. Install with: install.packages('dplyr')")
+  }
+  
+  # Define color palette matching the four-panel plots
+  group_colors <- c(
+    "Humans" = "#2E86AB",
+    "Wild Animals" = "#8B4513", 
+    "Farmed Animals" = "#20B2AA"
+  )
+  
+  table_data <- data %>%
+    filter(Year == 2023, 
+           !is.na(aliveatanytime)) %>%
+    mutate(
+      # Add "Farmed" prefix to farmed animal categories
+      Animal_Category = case_when(
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ paste("Farmed", Category),
+        TRUE ~ Category
+      ),
+      # Assign group colors
+      Group_Clean = case_when(
+        Category == "Humans" ~ "Humans",
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
+        Group == "Wild Animals" ~ "Wild Animals",
+        TRUE ~ "Other"
+      )
+    ) %>%
+    arrange(desc(aliveatanytime)) %>%
+    select(Animal_Category, aliveatanytime, Group_Clean)
+  
+  # TABLE 1: Individual Categories
+  table1 <- table_data %>%
+    select(Animal_Category, aliveatanytime, Group_Clean) %>%
+    gt() %>%
+    cols_hide(Group_Clean) %>%
+    cols_label(
+      Animal_Category = "Animal Category",
+      aliveatanytime = "Population (Alive at any time)"
+    ) %>%
+    fmt_number(
+      columns = aliveatanytime,
+      suffixing = TRUE,
+      decimals = 2
+    ) %>%
+    # Add color coding based on group
+    tab_style(
+      style = cell_fill(color = group_colors["Humans"]),
+      locations = cells_body(
+        rows = Group_Clean == "Humans"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Wild Animals"]),
+      locations = cells_body(
+        rows = Group_Clean == "Wild Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Farmed Animals"]),
+      locations = cells_body(
+        rows = Group_Clean == "Farmed Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold"),
+      locations = cells_body()
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold", size = px(16)),
+      locations = cells_column_labels()
+    ) %>%
+    tab_style(
+      style = cell_fill(color = "grey20"),
+      locations = cells_column_labels()
+    ) %>%
+    tab_header(
+      title = md("**Population by Animal Category (2023)**"),
+      subtitle = "Excluding wild terrestrial arthropods, wild fish, and farmed bees"
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
+      locations = cells_title(groups = "title")
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey50", size = px(14)),
+      locations = cells_title(groups = "subtitle")
+    ) %>%
+    tab_options(
+      table.font.size = px(14),
+      heading.align = "left",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden",
+      column_labels.border.bottom.width = px(2),
+      column_labels.border.bottom.color = "grey20"
+    )
+  
+  # TABLE 2: Aggregated Groups
+  table2_data <- data %>%
+    filter(Year == 2023,
+           !is.na(aliveatanytime)) %>%
+    mutate(
+      Animal_Group = case_when(
+        Category == "Humans" ~ "Humans",
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
+        Group == "Wild Animals" ~ "Wild Animals",
+        TRUE ~ "Other"
+      )
+    ) %>%
+    group_by(Animal_Group) %>%
+    summarise(
+      Population = sum(aliveatanytime, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(Population))
+  
+  table2 <- table2_data %>%
+    gt() %>%
+    cols_label(
+      Animal_Group = "Animal Group",
+      Population = "Population (Alive at any time)"
+    ) %>%
+    fmt_number(
+      columns = Population,
+      suffixing = TRUE,
+      decimals = 2
+    ) %>%
+    # Add color coding based on group
+    tab_style(
+      style = cell_fill(color = group_colors["Humans"]),
+      locations = cells_body(
+        rows = Animal_Group == "Humans"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Wild Animals"]),
+      locations = cells_body(
+        rows = Animal_Group == "Wild Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_fill(color = group_colors["Farmed Animals"]),
+      locations = cells_body(
+        rows = Animal_Group == "Farmed Animals"
+      )
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold"),
+      locations = cells_body()
+    ) %>%
+    tab_style(
+      style = cell_text(color = "white", weight = "bold", size = px(16)),
+      locations = cells_column_labels()
+    ) %>%
+    tab_style(
+      style = cell_fill(color = "grey20"),
+      locations = cells_column_labels()
+    ) %>%
+    tab_header(
+      title = md("**Population by Animal Group (2023)**"),
+      subtitle = "Aggregated totals excluding wild terrestrial arthropods, wild fish, and farmed bees"
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
+      locations = cells_title(groups = "title")
+    ) %>%
+    tab_style(
+      style = cell_text(color = "grey50", size = px(14)),
+      locations = cells_title(groups = "subtitle")
+    ) %>%
+    tab_options(
+      table.font.size = px(14),
+      heading.align = "left",
+      table.border.top.style = "hidden",
+      table.border.bottom.style = "hidden",
+      column_labels.border.bottom.width = px(2),
+      column_labels.border.bottom.color = "grey20"
+    )
+  
+  # Save tables
+  #gtsave(table1, file.path(output_dir, "tables/population_by_category_2023.html"))
+  gtsave(table1, file.path(output_dir, "tables/population_by_category_2023.png"))
+  
+  #gtsave(table2, file.path(output_dir, "tables/population_by_group_2023.html"))
+  gtsave(table2, file.path(output_dir, "tables/population_by_group_2023.png"))
+  
+  cat("Full population tables saved to:", output_dir, "\n")
+  cat("Files created: population_by_category_2023.png and population_by_group_202.png\n")
+}
 
 #' Create four-panel population comparison plots with stacked areas and simplified legends
 #' 

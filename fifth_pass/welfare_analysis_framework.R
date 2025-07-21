@@ -2266,7 +2266,7 @@ create_population_tables <- function(data, output_dir = "visualizations") {
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving visualizations
 #' @return NULL (saves plots to files)
-create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
+create_four_panel_population_plots_n <- function(data, output_dir = "visualizations") {
   
   # Create directory if it doesn't exist
   if(!dir.exists(output_dir)) {
@@ -2313,6 +2313,32 @@ create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = 
     filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
     ungroup()
   
+  # NEW: Prepare farmed animal data excluding fish and chickens
+  farmed_pop_no_fish_chickens <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)"),
+           !Category %in% c("Fish", "Chickens")) %>%
+    select(Year, Category, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Show specific categories, group others
+      Category_simplified = case_when(
+        Category == "Cattle" ~ "Cattle",
+        Category == "Sheep" ~ "Sheep",
+        Category == "Ducks" ~ "Ducks",
+        Category == "Goats" ~ "Goats",
+        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",  # Handle both possible names
+        TRUE ~ "Other Farmed Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified) %>%
+    complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+    group_by(Year) %>%
+    filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+    ungroup()
+  
   # Get the most recent year to determine ordering for farmed animals
   most_recent_year <- max(farmed_pop$Year, na.rm = TRUE)
   
@@ -2325,6 +2351,15 @@ create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = 
   # Apply the ordering as a factor
   farmed_pop <- farmed_pop %>%
     mutate(Category = factor(Category, levels = farmed_category_order))
+  
+  # NEW: Get ordering for farmed animals without fish and chickens
+  farmed_no_fish_chickens_order <- farmed_pop_no_fish_chickens %>%
+    filter(Year == most_recent_year) %>%
+    arrange(desc(aliveatanytime)) %>%
+    pull(Category)
+  
+  farmed_pop_no_fish_chickens <- farmed_pop_no_fish_chickens %>%
+    mutate(Category = factor(Category, levels = farmed_no_fish_chickens_order))
   
   # Prepare wild animal data - show wild birds and wild terrestrial mammals separately
   wild_pop <- data %>%
@@ -2400,6 +2435,9 @@ create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = 
   # Filter to only colors for categories that exist
   used_farmed_colors <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop$Category)]
   
+  # NEW: Colors for farmed animals without fish and chickens
+  used_farmed_colors_no_fish_chickens <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_no_fish_chickens$Category)]
+  
   # Specific colors for wild animals
   wild_colors <- c(
     "Wild birds" = "#228B22",           # Forest Green
@@ -2425,6 +2463,19 @@ create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = 
     scale_fill_manual(values = used_farmed_colors) +
     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
     labs(title = "Farmed Animal Population",
+         y = "Population (Billions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 8)) +
+    guides(fill = guide_legend(nrow = 2))
+  
+  # NEW: Panel 2b: Farmed Animals excluding fish and chickens
+  p2b <- ggplot(farmed_pop_no_fish_chickens, aes(x = Year, y = aliveatanytime, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_farmed_colors_no_fish_chickens) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Farmed Animal Population (No Fish, No Chickens)",
          y = "Population (Billions)",
          fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
@@ -2494,24 +2545,29 @@ create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = 
     theme(legend.position = "bottom")
   
   # Save plots
-  universal_ggsave(final_plot, "four_panel_population_comparison_n_wta_wfi_fbe", output_dir,
+  universal_ggsave(final_plot, "four_panel_population_comparison_n", output_dir,
                    pdf_width = 16, pdf_height = 10)
   
   # Individual panels
-  universal_ggsave(p1, "population_humans_only_n_wta_wfi_fbe", output_dir,
+  universal_ggsave(p1, "population_humans_only_n", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p2, "population_farmed_stacked_n_wta_wfi_fbe", output_dir,
+  universal_ggsave(p2, "population_farmed_stacked_n", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p3, "population_wild_stacked_n_wta_wfi_fbe", output_dir,
+  # NEW: Save the additional farmed animals plot without fish and chickens
+  universal_ggsave(p2b, "population_farmed_stacked_n_no_fish_chickens", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p4, "population_comparison_log_n_wta_wfi_fbe", output_dir,
+  universal_ggsave(p3, "population_wild_stacked_n", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "population_comparison_relative_n", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
   # Restore theme
   theme_set(original_theme)
   
-  cat("Four-panel population comparison plots (n_wta_wfi_fbe) saved to:", output_dir, "\n")
+  cat("Four-panel population comparison plots (n) saved to:", output_dir, "\n")
+  cat("Additional plot excluding farmed fish and chickens created: population_farmed_stacked_n_no_fish_chickens.pdf\n")
 }
+
 #' Create four-panel population comparison plots with stacked areas and simplified legends
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
@@ -2696,7 +2752,7 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p3, "population_wild_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p4, "population_comparison_log", output_dir,
+  universal_ggsave(p4, "population_comparison_relative", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
   # Restore theme
@@ -2740,7 +2796,7 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
       Category_simplified = case_when(
         Category == "Fish" ~ "Fish",
         Category == "Chickens" ~ "Chickens", 
-        Category == "Swine / Pigs" ~ "Swine / Pigs",
+        Category == "Pigs" ~ "Pigs",
         Category == "Goats" ~ "Goats",
         Category == "Cattle" ~ "Cattle",
         Category == "Sheep" ~ "Sheep",
@@ -2929,7 +2985,7 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p3, "nc_tot_wild_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p4, "nc_tot_comparison_log", output_dir,
+  universal_ggsave(p4, "nc_tot_comparison_relative", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
   # Restore theme
@@ -3163,7 +3219,7 @@ create_four_panel_nc_apot_plots <- function(data, output_dir = "visualizations")
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p3, "nc_apot_wild_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p4, "nc_apot_comparison_log", output_dir,
+  universal_ggsave(p4, "nc_apot_comparison_relative", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
   # Restore theme

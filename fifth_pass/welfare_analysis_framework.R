@@ -1730,7 +1730,7 @@ prepare_data_for_net_series <- function(data,
 }
 
 
-#' Create styled population tables with color-coded rows
+#' Create styled population tables with color-coded rows AND treemaps
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving tables
@@ -1742,7 +1742,7 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
   }
   
-  cat("Creating styled population tables...\n")
+  cat("Creating styled population tables and treemaps...\n")
   
   # Define color palette matching the four-panel plots
   group_colors <- c(
@@ -1775,7 +1775,38 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     arrange(desc(aliveatanytime)) %>%
     select(Animal_Category, aliveatanytime, Group_Clean)
   
-  # TABLE 1: Individual Categories
+  # Create treemap data with colors
+  treemap_data <- table_data %>%
+    mutate(
+      color = case_when(
+        Group_Clean == "Humans" ~ group_colors["Humans"],
+        Group_Clean == "Wild Animals" ~ group_colors["Wild Animals"],
+        Group_Clean == "Farmed Animals" ~ group_colors["Farmed Animals"],
+        TRUE ~ "grey50"
+      )
+    )
+  
+  # Create treemap
+  png(file.path(output_dir, "tables/population_treemap_2023_n_wta_wfi_fbe.png"), 
+      width = 12, height = 8, units = "in", res = 300)
+  
+  treemap(treemap_data,
+          index = "Animal_Category",
+          vSize = "aliveatanytime",
+          vColor = "color",
+          type = "color",
+          palette = unique(treemap_data$color),
+          title = "Population by Animal Category (2023)\nExcluding wild terrestrial arthropods, wild fish, and bees",
+          fontsize.title = 16,
+          fontsize.labels = 10,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 2)
+  
+  dev.off()
+  
+  # TABLE 1: Individual Categories (existing code)
   table1 <- table_data %>%
     select(Animal_Category, aliveatanytime, Group_Clean) %>%
     gt() %>%
@@ -1861,6 +1892,36 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     ) %>%
     arrange(desc(Population))
   
+  # Create aggregated treemap
+  treemap_data_agg <- table2_data %>%
+    mutate(
+      color = case_when(
+        Animal_Group == "Humans" ~ group_colors["Humans"],
+        Animal_Group == "Wild Animals" ~ group_colors["Wild Animals"],
+        Animal_Group == "Farmed Animals" ~ group_colors["Farmed Animals"],
+        TRUE ~ "grey50"
+      )
+    )
+  
+  png(file.path(output_dir, "tables/population_treemap_aggregated_2023_n_wta_wfi_fbe.png"), 
+      width = 10, height = 6, units = "in", res = 300)
+  
+  treemap(treemap_data_agg,
+          index = "Animal_Group",
+          vSize = "Population",
+          vColor = "color",
+          type = "color",
+          palette = unique(treemap_data_agg$color),
+          title = "Population by Animal Group (2023)\nAggregated totals excluding wild terrestrial arthropods, wild fish, and bees",
+          fontsize.title = 16,
+          fontsize.labels = 12,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 3)
+  
+  dev.off()
+  
   table2 <- table2_data %>%
     gt() %>%
     cols_label(
@@ -1925,17 +1986,15 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     )
   
   # Save tables
-  #gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_wta_wfi_fbe.html"))
-  gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_wta_wfi_fbe.png"))
+  gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_n_wta_wfi_fbe.png"))
+  gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_n_wta_wfi_fbe.png"))
   
-  #gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_wta_wfi_fbe.html"))
-  gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_wta_wfi_fbe.png"))
-  
-  cat("Styled population tables saved to:", output_dir, "\n")
-  cat("Files created: population_by_category_2023_wta_wfi_fbe/.png and population_by_group_2023_wta_wfi_fbe/.png\n")
+  cat("Styled population tables and treemaps saved to:", output_dir, "\n")
+  cat("Files created: population_by_category_2023_wta_wfi_fbe.png, population_by_group_2023_wta_wfi_fbe.png\n")
+  cat("Treemaps created: population_treemap_2023_n_wta_wfi_fbe.png, population_treemap_aggregated_2023_n_wta_wfi_fbe.png\n")
 }
 
-#' Create styled population tables with color-coded rows
+#' Create styled population tables with color-coded rows AND treemaps (full dataset)
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving tables
@@ -1947,7 +2006,7 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
   }
   
-  cat("Creating styled population tables...\n")
+  cat("Creating styled population tables and treemaps...\n")
   
   # Load required packages for table styling
   if(!require(gt)) {
@@ -1984,7 +2043,38 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     arrange(desc(aliveatanytime)) %>%
     select(Animal_Category, aliveatanytime, Group_Clean)
   
-  # TABLE 1: Individual Categories
+  # Create treemap data with colors
+  treemap_data <- table_data %>%
+    mutate(
+      color = case_when(
+        Group_Clean == "Humans" ~ group_colors["Humans"],
+        Group_Clean == "Wild Animals" ~ group_colors["Wild Animals"],
+        Group_Clean == "Farmed Animals" ~ group_colors["Farmed Animals"],
+        TRUE ~ "grey50"
+      )
+    )
+  
+  # Create treemap
+  png(file.path(output_dir, "tables/population_treemap_2023.png"), 
+      width = 12, height = 8, units = "in", res = 300)
+  
+  treemap(treemap_data,
+          index = "Animal_Category",
+          vSize = "aliveatanytime",
+          vColor = "color",
+          type = "color",
+          palette = unique(treemap_data$color),
+          title = "Population by Animal Category (2023)",
+          fontsize.title = 16,
+          fontsize.labels = 10,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 2)
+  
+  dev.off()
+  
+  # TABLE 1: Individual Categories (existing code)
   table1 <- table_data %>%
     select(Animal_Category, aliveatanytime, Group_Clean) %>%
     gt() %>%
@@ -2031,7 +2121,7 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     ) %>%
     tab_header(
       title = md("**Population by Animal Category (2023)**"),
-      subtitle = "Excluding wild terrestrial arthropods, wild fish, and farmed bees"
+      subtitle = "All categories including wild terrestrial arthropods, wild fish, and farmed bees"
     ) %>%
     tab_style(
       style = cell_text(color = "grey20", size = px(18), weight = "bold"),
@@ -2068,6 +2158,36 @@ create_population_tables <- function(data, output_dir = "visualizations") {
       .groups = "drop"
     ) %>%
     arrange(desc(Population))
+  
+  # Create aggregated treemap
+  treemap_data_agg <- table2_data %>%
+    mutate(
+      color = case_when(
+        Animal_Group == "Humans" ~ group_colors["Humans"],
+        Animal_Group == "Wild Animals" ~ group_colors["Wild Animals"],
+        Animal_Group == "Farmed Animals" ~ group_colors["Farmed Animals"],
+        TRUE ~ "grey50"
+      )
+    )
+  
+  png(file.path(output_dir, "tables/population_treemap_aggregated_2023.png"), 
+      width = 10, height = 6, units = "in", res = 300)
+  
+  treemap(treemap_data_agg,
+          index = "Animal_Group",
+          vSize = "Population",
+          vColor = "color",
+          type = "color",
+          palette = unique(treemap_data_agg$color),
+          title = "Population by Animal Group (2023)\nAggregated totals for all categories",
+          fontsize.title = 16,
+          fontsize.labels = 12,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 3)
+  
+  dev.off()
   
   table2 <- table2_data %>%
     gt() %>%
@@ -2113,7 +2233,7 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     ) %>%
     tab_header(
       title = md("**Population by Animal Group (2023)**"),
-      subtitle = "Aggregated totals excluding wild terrestrial arthropods, wild fish, and farmed bees"
+      subtitle = "Aggregated totals for all categories"
     ) %>%
     tab_style(
       style = cell_text(color = "grey20", size = px(18), weight = "bold"),
@@ -2133,16 +2253,265 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     )
   
   # Save tables
-  #gtsave(table1, file.path(output_dir, "tables/population_by_category_2023.html"))
   gtsave(table1, file.path(output_dir, "tables/population_by_category_2023.png"))
-  
-  #gtsave(table2, file.path(output_dir, "tables/population_by_group_2023.html"))
   gtsave(table2, file.path(output_dir, "tables/population_by_group_2023.png"))
   
-  cat("Full population tables saved to:", output_dir, "\n")
-  cat("Files created: population_by_category_2023.png and population_by_group_202.png\n")
+  cat("Full population tables and treemaps saved to:", output_dir, "\n")
+  cat("Files created: population_by_category_2023.png and population_by_group_2023.png\n")
+  cat("Treemaps created: population_treemap_2023.png, population_treemap_aggregated_2023.png\n")
 }
 
+#' Create four-panel population comparison plots with stacked areas and simplified legends (excluding wild terrestrial arthropods, wild fish, and bees)
+#' 
+#' @param data The extended_integrated_calc_tseries dataset
+#' @param output_dir Directory for saving visualizations
+#' @return NULL (saves plots to files)
+create_four_panel_population_plots_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
+  
+  # Create directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  cat("Creating four-panel population comparison plots (excluding wt. arthropods, w. fish, bees)...\n")
+  
+  # Filter out excluded categories
+  excluded_categories <- c("Wild terrestrial arthropods", "Wild fish", "Bees")
+  data <- data %>%
+    filter(!Category %in% excluded_categories)
+  
+  # Prepare human population data (single category)
+  human_pop <- data %>%
+    filter(Category == "Humans") %>%
+    select(Year, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), aliveatanytime > 0)
+  
+  # Prepare farmed animal data - show specific animals separately
+  farmed_pop <- data %>%
+    filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
+    select(Year, Category, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Show specific categories, group others
+      Category_simplified = case_when(
+        Category == "Fish" ~ "Fish",
+        Category == "Chickens" ~ "Chickens",
+        Category == "Cattle" ~ "Cattle",
+        Category == "Sheep" ~ "Sheep",
+        Category == "Ducks" ~ "Ducks",
+        Category == "Goats" ~ "Goats",
+        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",  # Handle both possible names
+        TRUE ~ "Other Farmed Animals"
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified) %>%
+    complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+    group_by(Year) %>%
+    filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+    ungroup()
+  
+  # Get the most recent year to determine ordering for farmed animals
+  most_recent_year <- max(farmed_pop$Year, na.rm = TRUE)
+  
+  # Calculate ordering based on most recent year's values (largest to smallest)
+  farmed_category_order <- farmed_pop %>%
+    filter(Year == most_recent_year) %>%
+    arrange(desc(aliveatanytime)) %>%
+    pull(Category)
+  
+  # Apply the ordering as a factor
+  farmed_pop <- farmed_pop %>%
+    mutate(Category = factor(Category, levels = farmed_category_order))
+  
+  # Prepare wild animal data - show wild birds and wild terrestrial mammals separately
+  wild_pop <- data %>%
+    filter(Group == "Wild Animals") %>%
+    select(Year, Category, aliveatanytime) %>%
+    filter(!is.na(aliveatanytime), !is.na(Category)) %>%
+    mutate(
+      Year = as.numeric(Year),
+      # Show specific wild categories
+      Category_simplified = case_when(
+        Category == "Wild birds" ~ "Wild birds",
+        Category == "Wild terrestrial mammals" ~ "Wild terrestrial mammals",
+        TRUE ~ "Other Wild Animals"  # This should be empty given our exclusions, but keeping for safety
+      )
+    ) %>%
+    group_by(Year, Category_simplified) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    rename(Category = Category_simplified) %>%
+    complete(Year, Category, fill = list(aliveatanytime = 0)) %>%
+    group_by(Year) %>%
+    filter(sum(aliveatanytime, na.rm = TRUE) > 0) %>%
+    ungroup()
+  
+  # Get ordering for wild animals too (largest to smallest)
+  wild_most_recent <- max(wild_pop$Year, na.rm = TRUE)
+  wild_category_order <- wild_pop %>%
+    filter(Year == wild_most_recent) %>%
+    arrange(desc(aliveatanytime)) %>%
+    pull(Category)
+  
+  wild_pop <- wild_pop %>%
+    mutate(Category = factor(Category, levels = wild_category_order))
+  
+  # Aggregated totals for the comparison panel
+  farmed_total <- farmed_pop %>%
+    group_by(Year) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    filter(aliveatanytime > 0)
+  
+  wild_total <- wild_pop %>%
+    group_by(Year) %>%
+    summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
+    filter(aliveatanytime > 0)
+  
+  # Set theme
+  original_theme <- theme_get()
+  theme_set(theme_minimal(base_size = 12) +
+              theme(
+                plot.title = element_text(face = "bold", size = 14),
+                plot.subtitle = element_text(size = 11, color = "grey30"),
+                strip.text = element_text(face = "bold"),
+                panel.grid.minor = element_blank(),
+                panel.border = element_blank(),
+                axis.ticks = element_line(color = "grey70"),
+                axis.line = element_line(color = "grey70")
+              ))
+  
+  # Color palettes
+  main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#F24236", "Wild Animals" = "#27AE60")
+  
+  # Specific colors for farmed animals - filter to only colors for categories that exist
+  farmed_colors <- c(
+    "Fish" = "#20B2AA",           # Teal
+    "Chickens" = "#FF6B6B",       # Red
+    "Cattle" = "#8B4513",         # Brown
+    "Sheep" = "#32CD32",          # Green
+    "Ducks" = "#4169E1",          # Blue
+    "Goats" = "#FF8C00",          # Orange
+    "Swine/Pigs" = "#DA70D6",     # Orchid
+    "Other Farmed Animals" = "#D2691E"  # Chocolate
+  )
+  
+  # Filter to only colors for categories that exist
+  used_farmed_colors <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop$Category)]
+  
+  # Specific colors for wild animals
+  wild_colors <- c(
+    "Wild birds" = "#228B22",           # Forest Green
+    "Wild terrestrial mammals" = "#8FBC8F",  # Dark Sea Green
+    "Other Wild Animals" = "#90EE90"    # Light Green
+  )
+  
+  # Filter to only colors for categories that exist
+  used_wild_colors <- wild_colors[names(wild_colors) %in% unique(wild_pop$Category)]
+  
+  # Panel 1: Human Population (simple area)
+  p1 <- ggplot(human_pop, aes(x = Year, y = aliveatanytime)) +
+    geom_area(alpha = 0.7, fill = main_colors["Humans"]) +
+    geom_line(color = main_colors["Humans"], size = 1.2) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Human Population",
+         y = "Population (Billions)") +
+    theme(plot.title = element_text(size = 14, face = "bold"))
+  
+  # Panel 2: Farmed Animals (stacked area chart with specific categories)
+  p2 <- ggplot(farmed_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_farmed_colors) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Farmed Animal Population",
+         y = "Population (Billions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 8)) +
+    guides(fill = guide_legend(nrow = 2))
+  
+  # Panel 3: Wild Animals (stacked area chart with specific categories)
+  p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
+    geom_area(position = "stack", alpha = 0.8) +
+    scale_fill_manual(values = used_wild_colors) +
+    scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
+    labs(title = "Wild Animal Population",
+         y = "Population (Billions)",
+         fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "bottom",
+          legend.text = element_text(size = 9))
+  
+  # Panel 4: Combined comparison (relative to baseline) with labels
+  combined_data <- bind_rows(
+    human_pop %>% mutate(Group = "Humans"),
+    farmed_total %>% mutate(Group = "Farmed Animals"),
+    wild_total %>% mutate(Group = "Wild Animals")
+  ) %>%
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals"))) %>%
+    # Transform to relative scale (baseline = 1.0)
+    group_by(Group) %>%
+    arrange(Year) %>%
+    mutate(baseline_value = first(aliveatanytime),
+           relative_value = aliveatanytime / baseline_value) %>%
+    ungroup()
+  
+  p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
+                                  color = Group, fill = Group)) +
+    geom_area(alpha = 0.4, position = "identity") +
+    geom_line(size = 1.2) +
+    # Add labels at the end of each line
+    geom_text(data = combined_data %>% 
+                group_by(Group) %>% 
+                filter(Year == max(Year)) %>% 
+                ungroup(),
+              aes(label = Group), 
+              hjust = -0.1, 
+              size = 4, 
+              check_overlap = TRUE) +
+    scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
+    scale_color_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
+    scale_fill_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
+    # Extend x-axis to make room for labels
+    scale_x_continuous(limits = c(min(combined_data$Year), 
+                                  max(combined_data$Year) + 8)) +
+    labs(title = "Comparative Population Trends",
+         subtitle = "Relative to baseline year reveals growth patterns",
+         y = "Population (Relative to Baseline)",
+         color = "", fill = "") +
+    theme(plot.title = element_text(size = 14, face = "bold"),
+          legend.position = "none")  # Remove legend since we have direct labels
+  
+  # Combine with patchwork
+  final_plot <- (p1 | p2) / (p3 | p4) +
+    plot_annotation(
+      title = "Global Population Dynamics: Humans, Farmed Animals, and Wildlife",
+      subtitle = "Specific categories shown - excluding wild terrestrial arthropods, wild fish, and farmed bees (1950-2025)"
+    ) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  # Save plots
+  universal_ggsave(final_plot, "four_panel_population_comparison_n_wta_wfi_fbe", output_dir,
+                   pdf_width = 16, pdf_height = 10)
+  
+  # Individual panels
+  universal_ggsave(p1, "population_humans_only_n_wta_wfi_fbe", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p2, "population_farmed_stacked_n_wta_wfi_fbe", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p3, "population_wild_stacked_n_wta_wfi_fbe", output_dir,
+                   pdf_width = 8, pdf_height = 6)
+  universal_ggsave(p4, "population_comparison_log_n_wta_wfi_fbe", output_dir,
+                   pdf_width = 10, pdf_height = 6)
+  
+  # Restore theme
+  theme_set(original_theme)
+  
+  cat("Four-panel population comparison plots (n_wta_wfi_fbe) saved to:", output_dir, "\n")
+}
 #' Create four-panel population comparison plots with stacked areas and simplified legends
 #' 
 #' @param data The extended_integrated_calc_tseries dataset

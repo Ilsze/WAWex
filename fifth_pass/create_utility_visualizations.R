@@ -34,8 +34,9 @@ create_utility_visualizations <- function(data,
   create_population_tables_n_wta_wfi_fbe(extended_data_for_net, output_dir)
   create_population_tables(extended_data_for_net, output_dir)
   
-  # # 5a. Create four-panel population plot
-  # create_four_panel_population_plots(extended_data_for_net, output_dir)
+  # 5a. Create four-panel population plot
+  create_four_panel_population_plots_n_wta_wfi_fbe(extended_data_for_net, output_dir)
+  create_four_panel_population_plots(extended_data_for_net, output_dir)
   # 
   # #5b. Create four-panel NC_tot plot
   # create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)

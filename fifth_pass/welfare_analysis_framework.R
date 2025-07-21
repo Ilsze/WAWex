@@ -1856,15 +1856,21 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
           legend.position = "bottom",
           legend.text = element_text(size = 9))
   
-  # Panel 4: Combined comparison (log scale) with labels - FIXED
+  # Panel 4: Combined comparison (relative to baseline) with labels - FIXED
   combined_data <- bind_rows(
     human_pop %>% mutate(Group = "Humans"),
     farmed_total %>% mutate(Group = "Farmed Animals"),
     wild_total %>% mutate(Group = "Wild Animals")
   ) %>%
-    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals"))) %>%
+    # Transform to relative scale (baseline = 1.0)
+    group_by(Group) %>%
+    arrange(Year) %>%
+    mutate(baseline_value = first(aliveatanytime),
+           relative_value = aliveatanytime / baseline_value) %>%
+    ungroup()
   
-  p4 <- ggplot(combined_data, aes(x = Year, y = aliveatanytime,
+  p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
                                   color = Group, fill = Group)) +
     geom_area(alpha = 0.4, position = "identity") +
     geom_line(size = 1.2) +
@@ -1877,15 +1883,15 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_y_log10(labels = label_number()) +
+    scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
     scale_color_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
     scale_fill_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
     labs(title = "Comparative Population Trends",
-         subtitle = "Log scale reveals different growth patterns",
-         y = "Population (Log Scale)",
+         subtitle = "Relative to baseline year reveals growth patterns",
+         y = "Population (Relative to Baseline)",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
           legend.position = "none")  # Remove legend since we have direct labels
@@ -2083,15 +2089,21 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
           legend.position = "bottom",
           legend.text = element_text(size = 9))
   
-  # Panel 4: Combined comparison (log scale) with labels
+  # Panel 4: Combined comparison (relative to baseline) with labels
   combined_data <- bind_rows(
     human_nc_tot %>% mutate(Group = "Humans"),
     farmed_total %>% mutate(Group = "Farmed Animals"),
     wild_total %>% mutate(Group = "Wild Animals")
   ) %>%
-    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals"))) %>%
+    # Transform to relative scale (baseline = 1.0)
+    group_by(Group) %>%
+    arrange(Year) %>%
+    mutate(baseline_value = first(NC_tot),
+           relative_value = NC_tot / baseline_value) %>%
+    ungroup()
   
-  p4 <- ggplot(combined_data, aes(x = Year, y = NC_tot,
+  p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
                                   color = Group, fill = Group)) +
     geom_area(alpha = 0.4, position = "identity") +
     geom_line(size = 1.2) +
@@ -2104,15 +2116,15 @@ create_four_panel_nc_tot_plots <- function(data, output_dir = "visualizations") 
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_y_log10(labels = label_number()) +
+    scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
     scale_color_manual(values = main_colors) +
     scale_fill_manual(values = main_colors) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
     labs(title = "Comparative Total Neuron Trends",
-         subtitle = "Log scale reveals neural capacity distribution",
-         y = "Total Neurons (Log Scale)",
+         subtitle = "Relative to baseline year reveals neural capacity distribution",
+         y = "Total Neurons (Relative to Baseline)",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
           legend.position = "none")  # Remove legend since we have direct labels
@@ -2311,15 +2323,21 @@ create_four_panel_nc_apot_plots <- function(data, output_dir = "visualizations")
           legend.position = "bottom",
           legend.text = element_text(size = 9))
   
-  # Panel 4: Combined comparison (log scale) with labels
+  # Panel 4: Combined comparison (relative to baseline) with labels
   combined_data <- bind_rows(
     human_nc_apot %>% mutate(Group = "Humans"),
     farmed_total %>% mutate(Group = "Farmed Animals"),
     wild_total %>% mutate(Group = "Wild Animals")
   ) %>%
-    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals")))
+    mutate(Group = factor(Group, levels = c("Humans", "Farmed Animals", "Wild Animals"))) %>%
+    # Transform to relative scale (baseline = 1.0)
+    group_by(Group) %>%
+    arrange(Year) %>%
+    mutate(baseline_value = first(NC_apot),
+           relative_value = NC_apot / baseline_value) %>%
+    ungroup()
   
-  p4 <- ggplot(combined_data, aes(x = Year, y = NC_apot,
+  p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
                                   color = Group, fill = Group)) +
     geom_area(alpha = 0.4, position = "identity") +
     geom_line(size = 1.2) +
@@ -2332,15 +2350,15 @@ create_four_panel_nc_apot_plots <- function(data, output_dir = "visualizations")
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +
-    scale_y_log10(labels = label_number()) +
+    scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
     scale_color_manual(values = main_colors) +
     scale_fill_manual(values = main_colors) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
     labs(title = "Comparative Total Relative Neural Capacity Trends",
-         subtitle = "Log scale reveals neural capacity distribution",
-         y = "Total Neurons (Log Scale)",
+         subtitle = "Relative to baseline year reveals neural capacity distribution",
+         y = "Total Neurons (Relative to Baseline)",
          color = "", fill = "") +
     theme(plot.title = element_text(size = 14, face = "bold"),
           legend.position = "none")  # Remove legend since we have direct labels
@@ -3831,70 +3849,3 @@ create_mixed_series <- function(data, output_dir = "visualisations") {
 
 
 
-#' Create complete set of utility visualizations using factored functions
-#' 
-#' @param data The processed dataset
-#' @param net_series The net series data (not used in current implementation)
-#' @param output_dir Directory for saving visualizations
-#' @return NULL (saves plots to files)
-create_utility_visualizations <- function(data, 
-                                          net_series, 
-                                          output_dir = "visualizations") {
-  
-  # Create directory if it doesn't exist
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  cat("Creating utility visualizations...\n")
-  
-  
-  
-  #0. Create NC apot (aliveatanytime * NC_potential) plots
-  create_nc_apot_plots(data, output_dir)
-  
-  # 1. Create NC utility plots
-  create_nc_utility_plots(data, output_dir)
-  
-  # 2. Create WR utility plots  
-  create_wr_utility_plots(data, output_dir)
-  
-  # 3. Prepare data for net series
-  extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
-  
-  # # 4a. Create four-panel population plot
-  # create_four_panel_population_plots(extended_data_for_net, output_dir)
-  # 
-  # #4b. Create four-panel NC_tot plot
-  # create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)
-  # 
-  # #4c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
-  # create_four_panel_nc_apot_plots(extended_data_for_net, output_dir)
-  # 
-  #4d. Create four-panel NC score range
-  p4_from_four_panel_NC_score_range <-
-    create_four_panel_nc_score_range_plots(extended_data_for_net, output_dir)
-  
-  # #5a. Create three-panel NC functional form changes 
-  # create_three_panel_nc_func_form_check(extended_data_for_net, output_dir, p4_from_four_panel_NC_score_range)
-  
-  #5b. Create four-panel WR score range [INCOMPLETE]
-  create_four_panel_wr_score_range_plots(extended_data_for_net, output_dir)
-  
-  #5c. Something to do with different measures for human welare
-  
-  #Commenting out due to not needed for fifth pass
-  # # 6. Create NC net utility comparisons
-  # create_nc_net_utility_comparisons(extended_data_for_net, output_dir)
-  # 
-  # # 7. Create WR net utility comparisons
-  # create_wr_net_utility_comparisons(extended_data_for_net, output_dir)
-  # 
-  # # 8. Create NC net total series
-  # create_nc_net_tot_series(extended_data_for_net, output_dir)
-  # 
-  # # 9. Create disaggregated plots with totals
-  # create_disaggregated_plots_with_totals(data, output_dir)
-  
-  cat("All utility visualizations completed successfully!\n")
-}

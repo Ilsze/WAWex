@@ -11,6 +11,7 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
 # Source the integration script (which sources the other scripts)
 source("fifth_pass/integration.R")
 source("fifth_pass/welfare_analysis_framework.R")
+source("fifth_pass/create_utility_visualizations.R")
 
 # ==============================================================================
 # FLEXIBLE PRESENTATION CONFIGURATION

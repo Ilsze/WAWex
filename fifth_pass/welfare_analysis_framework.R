@@ -1745,7 +1745,7 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
   }
   
-  cat("Creating styled population tables and treemaps...\n")
+  cat("Creating styled population tables...\n")
   
   # Define color palette matching the four-panel plots
   group_colors <- c(

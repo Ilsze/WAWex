@@ -2321,14 +2321,25 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     filter(!is.na(aliveatanytime), !is.na(Category)) %>%
     mutate(
       Year = as.numeric(Year),
-      # Show specific categories, group others
+      # Show ALL specific categories individually - no grouping into "Other"
       Category_simplified = case_when(
         Category == "Cattle" ~ "Cattle",
-        Category == "Sheep" ~ "Sheep",
+        Category == "Sheep" ~ "Sheep", 
         Category == "Ducks" ~ "Ducks",
         Category == "Goats" ~ "Goats",
-        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",  # Handle both possible names
-        TRUE ~ "Other Farmed Animals"
+        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",
+        Category == "Turkeys" ~ "Turkeys",
+        Category == "Geese" ~ "Geese",
+        Category == "Horses" ~ "Horses",
+        Category == "Mules" ~ "Mules",
+        Category == "Donkeys" ~ "Donkeys",
+        Category == "Camels" ~ "Camels",
+        Category == "Buffaloes" ~ "Buffaloes",
+        Category == "Yaks" ~ "Yaks",
+        Category == "Llamas" ~ "Llamas",
+        Category == "Alpacas" ~ "Alpacas",
+        # Keep any other categories that might exist
+        TRUE ~ Category
       )
     ) %>%
     group_by(Year, Category_simplified) %>%
@@ -2420,23 +2431,30 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
   # Color palettes
   main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#F24236", "Wild Animals" = "#27AE60")
   
-  # Specific colors for farmed animals - filter to only colors for categories that exist
-  farmed_colors <- c(
-    "Fish" = "#20B2AA",           # Teal
-    "Chickens" = "#FF6B6B",       # Red
-    "Cattle" = "#8B4513",         # Brown
-    "Sheep" = "#32CD32",          # Green
-    "Ducks" = "#4169E1",          # Blue
-    "Goats" = "#FF8C00",          # Orange
-    "Swine/Pigs" = "#DA70D6",     # Orchid
-    "Other Farmed Animals" = "#D2691E"  # Chocolate
+  # NEW: Expanded colors for farmed animals without fish and chickens
+  farmed_colors_expanded <- c(
+    "Cattle" = "#8B4513",          # Brown
+    "Sheep" = "#32CD32",           # Green
+    "Ducks" = "#4169E1",           # Blue
+    "Goats" = "#FF8C00",           # Orange
+    "Swine/Pigs" = "#DA70D6",      # Orchid
+    "Turkeys" = "#DC143C",         # Crimson
+    "Geese" = "#9932CC",           # Dark Orchid
+    "Horses" = "#2F4F4F",          # Dark Slate Gray
+    "Mules" = "#A0522D",           # Sienna
+    "Donkeys" = "#808080",         # Gray
+    "Camels" = "#F4A460",          # Sandy Brown
+    "Buffaloes" = "#556B2F",       # Dark Olive Green
+    "Yaks" = "#8FBC8F",            # Dark Sea Green
+    "Llamas" = "#DDA0DD",          # Plum
+    "Alpacas" = "#98FB98"          # Pale Green
   )
   
   # Filter to only colors for categories that exist
-  used_farmed_colors <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbi$Category)]
+  used_farmed_colors_n_fbi <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbe$Category)]
   
   # NEW: Colors for farmed animals without fish and chickens
-  used_farmed_colors_no_fish_chickens <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbi_ffi_fch$Category)]
+  used_farmed_colors_n_fbe_ffi_fch <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbe_ffi_fch$Category)]
   
   # Specific colors for wild animals
   wild_colors <- c(

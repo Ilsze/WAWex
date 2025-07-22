@@ -3,9 +3,12 @@
 # with different quantification methods for both welfare levels and potentials
 
 library(pacman)
-p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect, 
+p_load(tidyverse, dplyr, hrbrthemes, ggplot2, grid, gridExtra, gt, png, readr, magick, mgcv, tidyselect, 
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
-       patchwork, hrbrthemes, scales, gt, treemap)
+       patchwork, scales, treemap)
+
+source("fifth_pass/create_utility_visualizations.R")
+
 
 #' Universal plot saving function that handles all output formats automatically
 #' 
@@ -1815,9 +1818,8 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
       Animal_Category = "Animal Category",
       aliveatanytime = "Population (Alive at any time)"
     ) %>%
-    fmt_number(
+    fmt_scientific(
       columns = aliveatanytime,
-      suffixing = TRUE,
       decimals = 2
     ) %>%
     # Add color coding based on group
@@ -1928,9 +1930,8 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
       Animal_Group = "Animal Group",
       Population = "Population (Alive at any time)"
     ) %>%
-    fmt_number(
+    fmt_scientific(
       columns = Population,
-      suffixing = TRUE,
       decimals = 2
     ) %>%
     # Add color coding based on group
@@ -2195,9 +2196,8 @@ create_population_tables <- function(data, output_dir = "visualizations") {
       Animal_Group = "Animal Group",
       Population = "Population (Alive at any time)"
     ) %>%
-    fmt_number(
+    fmt_scientific(
       columns = Population,
-      suffixing = TRUE,
       decimals = 2
     ) %>%
     # Add color coding based on group
@@ -2262,6 +2262,8 @@ create_population_tables <- function(data, output_dir = "visualizations") {
 }
 
 #' Create four-panel population comparison plots with stacked areas and simplified legends (excluding wild terrestrial arthropods, wild fish, and bees)
+#' Note the n is not specified becuase some are wta_wfi_fbe, and others are
+#' wta_wfi_fbe_ffi_fch
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving visualizations
@@ -2364,13 +2366,13 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     mutate(Category = factor(Category, levels = farmed_category_order))
   
   # NEW: Get ordering for farmed animals without fish and chickens
-  farmed_no_fish_chickens_order <- farmed_pop_n_fbe_ffi_fch %>%
+  farmed_n_fbe_ffi_fch_order <- farmed_pop_n_fbe_ffi_fch %>%
     filter(Year == most_recent_year) %>%
     arrange(desc(aliveatanytime)) %>%
     pull(Category)
   
   farmed_pop_n_fbe_ffi_fch <- farmed_pop_n_fbe_ffi_fch %>%
-    mutate(Category = factor(Category, levels = farmed_no_fish_chickens_order))
+    mutate(Category = factor(Category, levels = farmed_n_fbe_ffi_fch_order))
   
   # Prepare wild animal data - show wild birds and wild terrestrial mammals separately
   wild_pop <- data %>%
@@ -2448,7 +2450,9 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     "Other camelids" = "#FF8C00",            # Dark Sea Green
     "Rabbits and hares" = "#DDA0DD",          # Plum
     "Other rodents" = "#6B4423",  # Umber
-    "Other birds" = "#4169E1"     # Steel blue 
+    "Other birds" = "#4169E1",     # Steel blue 
+    "Fish" = "#20B2AA",            # Teal
+    "Chickens" = "#FF0000"
   )
   
   # Filter to only colors for categories that exist
@@ -2503,8 +2507,6 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
           legend.text = element_text(size = 8)) +
     guides(fill = guide_legend(nrow = 2))
   
-  print(unique(farmed_pop_n_fbe_ffi_fch$Category))
-  
   # Panel 3: Wild Animals (stacked area chart with specific categories)
   p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
     geom_area(position = "stack", alpha = 0.8) +
@@ -2532,8 +2534,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     ungroup()
   
   p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
-                                  color = Group, fill = Group)) +
-    geom_area(alpha = 0.4, position = "identity") +
+                                  color = Group)) +
     geom_line(size = 1.2) +
     # Add labels at the end of each line
     geom_text(data = combined_data %>% 
@@ -2546,7 +2547,6 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
               check_overlap = TRUE) +
     scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
     scale_color_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
-    scale_fill_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
@@ -2572,21 +2572,26 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
   
   # Individual panels
   #p1 excluded bc made elsewhere
-  universal_ggsave(p2, "population_farmed_stacked_n_fbe", output_dir,
+  universal_ggsave(p2, "population_farmed_stacked_n_wta_wfi_fbe", output_dir,
                    pdf_width = 8, pdf_height = 6)
+  save(p2, file = paste0(output_dir, "/population_farmed_stacked_n_wta_wfi_fbe.rdata"))
   # NEW: Save the additional farmed animals plot without fish and chickens
-  universal_ggsave(p2b, "population_farmed_stacked_n_fbe_ffi_fch", output_dir,
+  universal_ggsave(p2b, "population_farmed_stacked_n_wta_wfi_fbe_ffi_fch", output_dir,
                    pdf_width = 8, pdf_height = 6)
+  save(p2b, file = paste0(output_dir, "/population_farmed_stacked_n_wta_wfi_fbe_ffi_fch.rdata"))
   universal_ggsave(p3, "population_wild_stacked_n_wta_wfi", output_dir,
                    pdf_width = 8, pdf_height = 6)
+  save(p3, file = paste0(output_dir, "/population_wild_stacked_n_wta_wfi.rdata"))
   universal_ggsave(p4, "population_comparison_relative_n_wta_wfi_fbe", output_dir,
                    pdf_width = 10, pdf_height = 6)
+  save(p4, file = paste0(output_dir, "/population_comparison_relative_n_wta_wfi_fbe.rdata"))
+  
   
   # Restore theme
   theme_set(original_theme)
   
   cat("Four-panel population comparison plots (n) saved to:", output_dir, "\n")
-  cat("Additional plot excluding farmed fish and chickens created: population_farmed_stacked_n_no_fish_chickens.pdf\n")
+  cat("Additional plot excluding farmed fish and chickens created: population_farmed_n_wta_wfi_fbe_ffi_fch.pdf\n")
 }
 
 #' Create four-panel population comparison plots with stacked areas and simplified legends
@@ -2728,8 +2733,7 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
     ungroup()
   
   p4 <- ggplot(combined_data, aes(x = Year, y = relative_value,
-                                  color = Group, fill = Group)) +
-    geom_area(alpha = 0.4, position = "identity") +
+                                  color = Group)) +
     geom_line(size = 1.2) +
     # Add labels at the end of each line
     geom_text(data = combined_data %>% 
@@ -2742,7 +2746,6 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
               check_overlap = TRUE) +
     scale_y_continuous(labels = label_number(scale = 1, suffix = "x")) +
     scale_color_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
-    scale_fill_manual(values = c("Humans" = "#2E86AB", "Farmed Animals" = "#FFD700", "Wild Animals" = "#8B4513")) +
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
@@ -2769,6 +2772,7 @@ create_four_panel_population_plots <- function(data, output_dir = "visualization
   # Individual panels
   universal_ggsave(p1, "population_humans_only", output_dir,
                    pdf_width = 8, pdf_height = 6)
+  save(p1, file = paste0(output_dir, "/population_humans_only.rdata"))
   universal_ggsave(p2, "population_farmed_stacked", output_dir,
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p3, "population_wild_stacked", output_dir,
@@ -3452,6 +3456,111 @@ create_four_panel_nc_score_range_plots <- function(data,
   
   return(p4)
 }
+
+#' Create an six-panel figure combining population tables and plots
+#' 
+#' @param output_dir Base directory where visualizations are stored
+#' @param save_dir Directory to save the combined six-panel figure (default: "six_figure_displays")
+#' @return NULL (saves combined plot to file)
+create_six_panel_population_display <- function(output_dir = "visualizations", 
+                                                  save_dir = "six_figure_displays") {
+  # Create output directory if it doesn't exist
+  if(!dir.exists(save_dir)) {
+    dir.create(save_dir, recursive = TRUE)
+  }
+  
+  cat("Creating six-panel population display combining tables and plots...\n")
+  
+  # Define file paths for the images and PDFs
+  viz_dir <- output_dir
+  
+  # Define all the files we need
+  required_files <- list(
+    # PNG Treemap
+    pop_treemap = file.path(table_dir, "population_treemap_2023_n_wta_wfi_fbe.png"),
+    
+    # Note that load operates on its own with no assigner. this abuse of notation is for my own personal reasons
+    # Claude can fix this
+    p1 = load(paste0(viz_dir, "/population_humans_only.rdata")),
+    p2 = load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe.rdata")),
+    p2b = load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe_ffi_fch.rdata")),
+    p3 = load(paste0(viz_dir, "/population_wild_stacked_n_wta_wfi.rdata")),
+    p4 = load(paste0(viz_dir, "/population_comparison_relative_n_wta_wfi_fbe.rdata"))
+  )
+  
+  # # Check that all required files exist
+  # missing_files <- required_files[!file.exists(unlist(required_files))]
+  # if(length(missing_files) > 0) {
+  #   stop("Missing required files: ", paste(names(missing_files), collapse = ", "), 
+  #        "\nExpected paths: ", paste(unlist(missing_files), collapse = ", "))
+  # }
+
+  # Function to read PNG as ggplot grob
+  png_to_grob <- function(png_path) {
+    img <- png::readPNG(png_path)
+    g <- grid::rasterGrob(img, interpolate = TRUE)
+    return(ggplot() + 
+             annotation_custom(g, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+             theme_void())
+  }
+  
+  cat("Loading PNG tables...\n")
+  # Load PNG tables
+  g3 <- png_to_grob(required_files$pop_treemap)
+  
+  # Add titles to each panel
+  g3 <- g3 + ggtitle("A. Population Treemap (2023)")
+  p1 <- p1 + ggtitle("B. Human Population Trends")
+  p2 <- p2 + ggtitle("C. Farmed Animals (All)")
+  p2b <- p2b + ggtitle("D. Farmed Animals (No Fish/Chickens)")
+  p3 <- p3 + ggtitle("E. Wild Animals")
+  p4 <- p4 + ggtitle("F. Relative Population Trends")
+  
+  cat("Arranging panels...\n")
+  # Arrange in a 3x3 grid with the last position empty, or 4x2
+  # Let's do 4 rows x 2 columns for better layout
+  combined_plot <- 
+    (g3 | p1) / 
+    (p2 | p2b) / 
+    (p3 | p4) +
+    plot_annotation(
+      title = "Comprehensive Population Analysis: Tables, Treemaps, and Temporal Trends",
+      subtitle = "A multi-faceted view of population dynamics across humans, farmed animals, and wildlife",
+      caption = "Note: Excludes wild terrestrial arthropods, wild fish, and farmed bees for clarity",
+      theme = theme(
+        plot.title = element_text(size = 20, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, hjust = 0.5),
+        plot.caption = element_text(size = 10, hjust = 0.5)
+      )
+    )
+  
+  # Save the combined figure
+  output_file <- file.path(save_dir, "six_panel_population_comprehensive.pdf")
+  
+  cat("Saving combined figure...\n")
+  ggsave(output_file, 
+         plot = combined_plot, 
+         width = 20, 
+         height = 24, 
+         units = "in",
+         dpi = 300)
+  
+  # Also save as PNG for easier viewing
+  output_png <- file.path(save_dir, "six_panel_population_comprehensive.png")
+  ggsave(output_png, 
+         plot = combined_plot, 
+         width = 20, 
+         height = 24, 
+         units = "in",
+         dpi = 300)
+  
+  cat("Eight-panel population display saved to:\n")
+  cat("  PDF:", output_file, "\n")
+  cat("  PNG:", output_png, "\n")
+  
+  return(combined_plot)
+}
+
 
 
 #' Create three-panel nc_score_range fourth-panel-style plots with concave, 
@@ -4161,6 +4270,7 @@ create_nc_net_utility_comparisons <- function(extended_data_for_net,
                 group_by(Group) %>% 
                 filter(Year == max(Year)),
               aes(label = Group), 
+              
               hjust = -0.1, 
               size = 4, 
               check_overlap = TRUE) +

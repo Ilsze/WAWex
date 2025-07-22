@@ -156,6 +156,10 @@ all_results <- run_all_welfare_method_combinations(
   create_visualizations = TRUE
 )
 
+# Create combined visualisations
+source("fifth_pass/create_utility_visualizations.R")
+combine_utility_visualizations(output_dir = "fifth_pass/welfare_results/3282/analysis_results/visualizations")
+
 # Restore original ggsave if needed
 if(exists("original_ggsave")) {
   ggsave <- original_ggsave

@@ -2550,7 +2550,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     # Extend x-axis to make room for labels
     scale_x_continuous(limits = c(min(combined_data$Year), 
                                   max(combined_data$Year) + 8)) +
-    labs(title = "Comparative Population Trends",
+    labs(title = "Comparative Population Trends, no wild terrestrial arthropods, wild fish, or farmed bees",
          subtitle = "Relative to baseline year reveals growth patterns",
          y = "Population (Relative to Baseline)",
          color = "", fill = "") +
@@ -2571,8 +2571,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
                    pdf_width = 16, pdf_height = 10)
   
   # Individual panels
-  universal_ggsave(p1, "population_humans_only_n", output_dir,
-                   pdf_width = 8, pdf_height = 6)
+  #p1 excluded bc made elsewhere
   universal_ggsave(p2, "population_farmed_stacked_n_fbe", output_dir,
                    pdf_width = 8, pdf_height = 6)
   # NEW: Save the additional farmed animals plot without fish and chickens
@@ -2580,7 +2579,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p3, "population_wild_stacked_n_wta_wfi", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p4, "population_comparison_relative_n", output_dir,
+  universal_ggsave(p4, "population_comparison_relative_n_wta_wfi_fbe", output_dir,
                    pdf_width = 10, pdf_height = 6)
   
   # Restore theme

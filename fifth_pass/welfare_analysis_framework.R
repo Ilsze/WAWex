@@ -2287,7 +2287,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     filter(!is.na(aliveatanytime), aliveatanytime > 0)
   
   # Prepare farmed animal data - show specific animals separately
-  farmed_pop_n_fbi <- data %>%
+  farmed_pop_n_fbe <- data %>%
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>%
     select(Year, Category, aliveatanytime) %>%
     filter(!is.na(aliveatanytime), !is.na(Category)) %>%
@@ -2301,7 +2301,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
         Category == "Sheep" ~ "Sheep",
         Category == "Ducks" ~ "Ducks",
         Category == "Goats" ~ "Goats",
-        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",  # Handle both possible names
+        Category == "Pigs" ~ "Pigs",
         TRUE ~ "Other Farmed Animals"
       )
     ) %>%
@@ -2314,7 +2314,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     ungroup()
   
   # NEW: Prepare farmed animal data excluding fish and chickens
-  farmed_pop_n_fbi_ffi_fch <- data %>%
+  farmed_pop_n_fbe_ffi_fch <- data %>%
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)"),
            !Category %in% c("Fish", "Chickens")) %>%
     select(Year, Category, aliveatanytime) %>%
@@ -2327,7 +2327,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
         Category == "Sheep" ~ "Sheep", 
         Category == "Ducks" ~ "Ducks",
         Category == "Goats" ~ "Goats",
-        Category %in% c("Swine / Pigs", "Pigs") ~ "Swine/Pigs",
+        Category == "Pigs" ~ "Pigs",
         Category == "Turkeys" ~ "Turkeys",
         Category == "Geese" ~ "Geese",
         Category == "Horses" ~ "Horses",
@@ -2351,25 +2351,25 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     ungroup()
   
   # Get the most recent year to determine ordering for farmed animals
-  most_recent_year <- max(farmed_pop_n_fbi$Year, na.rm = TRUE)
+  most_recent_year <- max(farmed_pop_n_fbe$Year, na.rm = TRUE)
   
   # Calculate ordering based on most recent year's values (largest to smallest)
-  farmed_category_order <- farmed_pop_n_fbi %>%
+  farmed_category_order <- farmed_pop_n_fbe %>%
     filter(Year == most_recent_year) %>%
     arrange(desc(aliveatanytime)) %>%
     pull(Category)
   
   # Apply the ordering as a factor
-  farmed_pop_n_fbi <- farmed_pop_n_fbi %>%
+  farmed_pop_n_fbe <- farmed_pop_n_fbe %>%
     mutate(Category = factor(Category, levels = farmed_category_order))
   
   # NEW: Get ordering for farmed animals without fish and chickens
-  farmed_no_fish_chickens_order <- farmed_pop_n_fbi_ffi_fch %>%
+  farmed_no_fish_chickens_order <- farmed_pop_n_fbe_ffi_fch %>%
     filter(Year == most_recent_year) %>%
     arrange(desc(aliveatanytime)) %>%
     pull(Category)
   
-  farmed_pop_n_fbi_ffi_fch <- farmed_pop_n_fbi_ffi_fch %>%
+  farmed_pop_n_fbe_ffi_fch <- farmed_pop_n_fbe_ffi_fch %>%
     mutate(Category = factor(Category, levels = farmed_no_fish_chickens_order))
   
   # Prepare wild animal data - show wild birds and wild terrestrial mammals separately
@@ -2405,7 +2405,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
     mutate(Category = factor(Category, levels = wild_category_order))
   
   # Aggregated totals for the comparison panel
-  farmed_total <- farmed_pop_n_fbi %>%
+  farmed_total <- farmed_pop_n_fbe %>%
     group_by(Year) %>%
     summarise(aliveatanytime = sum(aliveatanytime, na.rm = TRUE), .groups = "drop") %>%
     filter(aliveatanytime > 0)
@@ -2432,26 +2432,27 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
   main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#F24236", "Wild Animals" = "#27AE60")
   
   # NEW: Expanded colors for farmed animals without fish and chickens
-  farmed_colors_expanded <- c(
+  farmed_colors <- c(
     "Cattle" = "#8B4513",          # Brown
     "Sheep" = "#32CD32",           # Green
     "Ducks" = "#4169E1",           # Blue
-    "Goats" = "#FF8C00",           # Orange
-    "Swine/Pigs" = "#DA70D6",      # Orchid
+    "Goats" = "#CC7722",           # Orange
+    "Pigs" = "#FFC0CB",      # Orchid
     "Turkeys" = "#DC143C",         # Crimson
     "Geese" = "#9932CC",           # Dark Orchid
     "Horses" = "#2F4F4F",          # Dark Slate Gray
-    "Mules" = "#A0522D",           # Sienna
-    "Donkeys" = "#808080",         # Gray
+    "Mules and hinnies" = "#A0522D",           # Sienna
+    "Asses" = "#808080",         # Gray
     "Camels" = "#F4A460",          # Sandy Brown
-    "Buffaloes" = "#556B2F",       # Dark Olive Green
-    "Yaks" = "#8FBC8F",            # Dark Sea Green
-    "Llamas" = "#DDA0DD",          # Plum
-    "Alpacas" = "#98FB98"          # Pale Green
+    "Buffalo" = "#556B2F",       # Dark Olive Green
+    "Other camelids" = "#FF8C00",            # Dark Sea Green
+    "Rabbits and hares" = "#DDA0DD",          # Plum
+    "Other rodents" = "#6B4423",  # Umber
+    "Other birds" = "#4169E1"     # Steel blue 
   )
   
   # Filter to only colors for categories that exist
-  used_farmed_colors_n_fbi <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbe$Category)]
+  used_farmed_colors_n_fbe <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbe$Category)]
   
   # NEW: Colors for farmed animals without fish and chickens
   used_farmed_colors_n_fbe_ffi_fch <- farmed_colors[names(farmed_colors) %in% unique(farmed_pop_n_fbe_ffi_fch$Category)]
@@ -2475,10 +2476,10 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
          y = "Population (Billions)") +
     theme(plot.title = element_text(size = 14, face = "bold"))
   
-  # Panel 2: Farmed Animals (stacked area chart with specific categories)
-  p2 <- ggplot(farmed_pop_n_fbi, aes(x = Year, y = aliveatanytime, fill = Category)) +
+  # Panel 2: Farmed Animals (stacked area chart with specific categories) just exlcudes bees
+  p2 <- ggplot(farmed_pop_n_fbe, aes(x = Year, y = aliveatanytime, fill = Category)) +
     geom_area(position = "stack", alpha = 0.8) +
-    scale_fill_manual(values = used_farmed_colors) +
+    scale_fill_manual(values = used_farmed_colors_n_fbe) +
     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
     labs(title = "Farmed Animal Population",
          y = "Population (Billions)",
@@ -2488,10 +2489,11 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
           legend.text = element_text(size = 8)) +
     guides(fill = guide_legend(nrow = 2))
   
-  # NEW: Panel 2b: Farmed Animals excluding fish and chickens
-  p2b <- ggplot(farmed_pop_n_fbi_ffi_fch, aes(x = Year, y = aliveatanytime, fill = Category)) +
+  # NEW: Panel 2b: Farmed Animals excluding bees, fish and chickens
+  p2b <- ggplot(farmed_pop_n_fbe_ffi_fch, aes(x = Year, y = aliveatanytime, fill = Category)) +
     geom_area(position = "stack", alpha = 0.8) +
-    scale_fill_manual(values = used_farmed_colors_no_fish_chickens) +
+    scale_fill_manual(values = used_farmed_colors_n_fbe_ffi_fch,
+                      drop = FALSE) +  # Don't drop unused levels
     scale_y_continuous(labels = label_number(scale = 1e-9, suffix = "B")) +
     labs(title = "Farmed Animal Population (No Bees, No Fish, No Chickens)",
          y = "Population (Billions)",
@@ -2500,6 +2502,8 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
           legend.position = "bottom",
           legend.text = element_text(size = 8)) +
     guides(fill = guide_legend(nrow = 2))
+  
+  print(unique(farmed_pop_n_fbe_ffi_fch$Category))
   
   # Panel 3: Wild Animals (stacked area chart with specific categories)
   p3 <- ggplot(wild_pop, aes(x = Year, y = aliveatanytime, fill = Category)) +
@@ -2574,7 +2578,7 @@ create_four_panel_population_plots_n <- function(data, output_dir = "visualizati
   # NEW: Save the additional farmed animals plot without fish and chickens
   universal_ggsave(p2b, "population_farmed_stacked_n_fbe_ffi_fch", output_dir,
                    pdf_width = 8, pdf_height = 6)
-  universal_ggsave(p3, "population_wild_stacked_n", output_dir,
+  universal_ggsave(p3, "population_wild_stacked_n_wta_wfi", output_dir,
                    pdf_width = 8, pdf_height = 6)
   universal_ggsave(p4, "population_comparison_relative_n", output_dir,
                    pdf_width = 10, pdf_height = 6)
@@ -3943,7 +3947,7 @@ create_four_panel_score_plots <- function(data, output_dir = "visualisations") {
   main_colors <- c("Humans" = "#2E86AB", "Farmed Animals" = "#20B2AA", "Wild Animals" = "#8B4513")
   
   #Prepare farmed animal data - only show farmed fish, farmed chickens, cattle, 
-  #swine, and bees separately. group others
+  #pigs, and bees separately. group others
   farmed_nc_utility <- data %>% 
     filter(Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)")) %>% 
     select(Year, Category, NC_utility) %>% 

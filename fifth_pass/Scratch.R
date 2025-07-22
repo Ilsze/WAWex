@@ -52,9 +52,9 @@ create_treemaps_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
     arrange(desc(NC_tot)) %>%
     select(Animal_Category, NC_tot, Group_Clean)
   
-  #Prepare welfare score range data
-  ws_range_data <- data %>% 
-    mutate(WS_range <- NC_potential * )
+  #Prepare NC-based welfare score range data
+  nc_range_data <- data %>% 
+    mutate(NC_range <- NC_potential * )
   
   
 }

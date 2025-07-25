@@ -94,18 +94,15 @@ run_complete_welfare_analysis <- function(human_data_path,
                                                 output_file = file.path(output_dir, "integrated_calc_tseries.xlsx"))
   
   
-  #Step 5: Create extension dataset
-  cat("Step 5: Create extension dataset")
+  # Step 5: Ensure dataset has required potential and utility columns
+  cat("Step 5: Calculating welfare potential and utility metrics...\n")
+  
   # Extend and truncate trends to produce data appropriate for net series
   extended_data <- prepare_data_for_net_series(data = integrated_data, 
                                                pass_number = pass_number, 
                                                target_year_range = 1960:2023, 
                                                endpoint_years = 5)
   
-  #UTH: should ensure_nc_columns be called on integrated_data AND on extended_data separately? 
-  
-  # Step 6: Ensure dataset has required potential and utility columns
-  cat("Step 6: Calculating welfare potential and utility metrics...\n")
   # Ensure we have all necessary columns for both methods - always ensure both
   # sets of columns exist to avoid missing column errors in analysis
   integrated_data <- ensure_nc_columns(integrated_data)
@@ -115,8 +112,8 @@ run_complete_welfare_analysis <- function(human_data_path,
   integrated_data_path <- file.path(output_dir, "integrated_calc_tseries.xlsx") 
   write.xlsx(integrated_data, integrated_data_path)
   
-  # Step 7: Run analysis on integrated data
-  cat("Step 7: Running welfare analysis on integrated data...\n")
+  # Step 6: Run analysis on integrated data
+  cat("Step 6: Running welfare analysis on integrated data...\n")
   analysis_results <- analyze_welfare_data(
     calc_tseries = integrated_data,
     welfare_level_method = welfare_level_method,

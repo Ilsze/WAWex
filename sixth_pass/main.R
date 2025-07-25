@@ -151,8 +151,8 @@ pass_number <- "sixth_pass" # Shuffling extend_animal_trends to integration.R
 
 all_results <- run_all_welfare_method_combinations(
   human_data_path = "dat/world_bank/world_bank_pop_gdp_clean.xlsx",
-  farmed_animal_data_path = paste0(pass_number, "/calc_tseries.xlsx"),
-  wild_animal_data_path = paste0(pass_number, "/wild_calc_tseries.xlsx"),
+  farmed_animal_data_path = "pass_constants/calc_tseries.xlsx",
+  wild_animal_data_path = "pass_constants/wild_calc_tseries.xlsx",
   pass_number = pass_number,
   output_base_dir = paste0(pass_number, "/welfare_results"),
   create_visualizations = TRUE

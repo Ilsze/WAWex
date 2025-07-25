@@ -1,82 +1,88 @@
-#' Create tree maps for population, nc_tot, and welfare score range
-#' n_wta_wfi_fbe
+#' Visualize original vs extended trends for quality checking
+#' Called by prepare_data_for_net_series
 #' 
-#' @param data The extended_integrated_calc_tseries dataset
-#' @param output_dir Directory for saving tables
-#' @return NULL (saves tables to files)
-create_treemaps_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
+#' @param original_data Original dataset
+#' @param extended_data Extended dataset 
+#' @param output_dir Directory to save comparison plots
+create_trend_extension_plots <- function(original_data, extended_data, output_dir) {
   
-  # Create directory if it doesn't exist
-  if(!dir.exists(paste0(output_dir, "/treemaps"))) {
-    dir.create(paste0(output_dir, "/treemaps"), recursive = TRUE)
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
   }
-
-  cat("Creating treemaps...\n")
   
-  # Define color palette matching the four-panel plots
-  group_colors <- c(
-    "Humans" = "#2E86AB",
-    "Wild Animals" = "#8B4513", 
-    "Farmed Animals" = "#20B2AA"
-  )
+  # Get categories that were extended
+  original_ranges <- original_data %>%
+    group_by(Category) %>%
+    summarize(min_year = min(Year), max_year = max(Year))
   
-  # Filter data for 2023 and exclude specified categories
-  excluded_categories <- c("Wild terrestrial arthropods", "Wild fish", "Bees")
+  extended_ranges <- extended_data %>%
+    group_by(Category) %>%
+    summarize(min_year = min(Year), max_year = max(Year))
   
-  #Prepare data for treemap
-  data <- data %>% 
-    filter(Year == 2023, 
-           !Category %in% excluded_categories) %>% 
-    mutate(
-      Animal_Category = case_when(
-        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ paste("Farmed", Category),
-        TRUE ~ Category
-      ),
-      Group_Clean = case_when(
-        Category == "Humans" ~ "Humans",
-        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
-        Group == "Wild Animals" ~ "Wild Animals",
-        TRUE ~ "Other"
-      )
+  extended_categories <- original_ranges %>%
+    left_join(extended_ranges, by = "Category", suffix = c("_orig", "_ext")) %>%
+    filter(min_year_orig != min_year_ext | max_year_orig != max_year_ext) %>%
+    pull(Category)
+  
+  # Create comparison plots for each extended category
+  for(category in extended_categories) {
+    
+    orig_data <- original_data %>% filter(Category == category)
+    ext_data <- extended_data %>% filter(Category == category)
+    
+    # Mark original vs extended data
+    plot_data <- bind_rows(
+      orig_data %>% mutate(Data_Type = "Original"),
+      ext_data %>% filter(!Year %in% orig_data$Year) %>% mutate(Data_Type = "Extended")
     )
+    
+    p <- ggplot(plot_data, aes(x = Year, y = aliveatanytime, color = Data_Type)) +
+      geom_line(size = 1) +
+      geom_point(size = 0.8) +
+      scale_color_manual(values = c("Original" = "black", "Extended" = "red")) +
+      labs(title = paste("Trend Extension for", category),
+           y = "Population (alive at any time)",
+           x = "Year",
+           color = "Data Type") +
+      theme_minimal()
+    
+    ggsave(file.path(output_dir, paste0(gsub("[^A-Za-z0-9]", "_", category), "_extension.pdf")), 
+           plot = p, width = 10, height = 6)
+  }
   
-  #Prepare population data
-  pop_data <- data %>% 
-    filter(!is.na(aliveatanytime)) %>%
-    arrange(desc(aliveatanytime)) %>%
-    select(Animal_Category, aliveatanytime, Group_Clean)
-  
-  #Prepare nc_tot data
-  pop_data <- data %>% 
-    filter(!is.na(NC_tot)) %>%
-    arrange(desc(NC_tot)) %>%
-    select(Animal_Category, NC_tot, Group_Clean)
-  
-  #Prepare NC-based welfare score range data
-  nc_range_data <- data %>% 
-    mutate(NC_range <- NC_potential * )
-  
-  
+  cat("Trend extension plots saved to:", output_dir, "\n")
 }
 
 
-#this other thing about moving extend_animal_trends to integration.R
-#' Extend animal population trends to match human time range using local trend-aware methods
-#' This is for the purpose of net series such as NC_utility, WR_utility, and NC_Tot. 
-#' Called by prepare_data_for_net_series
+
+
+
+#' Extend animal population trends to match target time range for net series calculations
 #' 
 #' @param data The input dataset with all categories
-#' @param target_year_range The target year range set by prepare_data_for_net_series
+#' @param pass_number Directory for saving trend extension plots (default: "visualizations")
+#' @param target_year_range Year range to extend data to (default: 1960:2023)
 #' @param endpoint_years Number of years to use for endpoint trend calculation (default 5)
-#' @return Dataset with extended trends for all categories
-extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
+#' @return Extended dataset suitable for net series calculations
+prepare_data_for_net_series <- function(data, 
+                                        pass_number, #to save extended_integrated_calc_tseries
+                                        target_year_range = 1960:2023,
+                                        endpoint_years = 5) {
+  
+  # Create output directory if it doesn't exist
+  if(!dir.exists(pass_number)) {
+    dir.create(pass_number, recursive = TRUE)
+  }
   
   target_min <- min(target_year_range)
   target_max <- max(target_year_range)
   
-  cat("Target extension range:", target_min, "to", target_max, "\n")
+  cat("Extending animal trends for net series calculation to cover", target_min, "to", target_max, "\n")
   
-  # Process each category separately
+  # Store original data for comparison plots
+  original_data <- data
+  
+  #Process each category separately
   extended_data <- data %>%
     group_by(Category) %>%
     group_modify(~ {
@@ -203,9 +209,25 @@ extend_animal_trends <- function(data, target_year_range, endpoint_years = 5) {
       NC_utility = aliveatanytime * NC_potential * Welfare_level, 
     )
   
-  return(extended_data)
+  # Create trend extension plots directory and sanity check
+  extension_plots_dir <- file.path(pass_number, "trend_extension_plots")
+  if(!dir.exists(extension_plots_dir)) {
+    dir.create(extension_plots_dir, recursive = TRUE)
+  }
+  
+  # Create trend extension plots for quality checking
+  cat("Creating trend extension plots for quality checking...\n")
+  create_trend_extension_plots(data, extended_data, extension_plots_dir)
+  
+  cat("Data preparation for net series complete. Extended data covers", 
+      min(target_year_range), "to", max(target_year_range), "\n")
+  cat("Trend extension plots saved to:", extension_plots_dir, "\n")
+  
+  # Ensure save directory for extended data exists
+  if(!dir.exists("fifth_pass/dat/")) {
+    dir.create("fifth_pass/dat/", recursive = TRUE)
+  }
+  
+  # Save extended data for reuse in cor and elas calculations
+  write.xlsx(extended_data, "fifth_pass/dat/extended_integrated_calc_tseries.xlsx")
 }
-
-
-
-

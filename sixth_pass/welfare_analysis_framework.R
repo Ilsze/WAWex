@@ -7,7 +7,7 @@ p_load(tidyverse, dplyr, hrbrthemes, ggplot2, grid, gridExtra, gt, png, readr, m
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
        patchwork, scales, treemap)
 
-source(paste0(pass_number, "/create_utility_visualizations.R"))
+source("fifth_pass/create_utility_visualizations.R")
 
 
 #' Universal plot saving function that handles all output formats automatically
@@ -185,30 +185,40 @@ analyze_welfare_data <- function(calc_tseries,
 #' @param data The dataset to check and modify
 #' @return Updated dataset with all NC columns
 ensure_nc_columns <- function(data) {
-  
-  # Get human forebrain neurons for relative scaling
-  human_fneurons <- data %>%
-    filter(Category == "Humans") %>%
-    pull(forebrain_neurons) %>%
-    unique() %>%
-    .[1]  # Use just the first value
-  
-  #Create Welfare_level_max column based on our judgement
-  #UTH
-  
-  
-  
-  # Calculate NC columns
-  data <- data %>%
-    mutate(
-      NC_tot = aliveatanytime * forebrain_neurons,
-      NC_potential = forebrain_neurons / human_fneurons,
-      NC_pot_conc = sqrt(NC_potential), 
-      NC_pot_conv = NC_potential^2,
-      NC_apot = aliveatanytime * NC_potential,
-      NC_utility = aliveatanytime * NC_potential * Welfare_level,
-      NC_umax = aliveatanytime * NC_potential * Welfare_level_max
-    )
+  # Check if NC columns already exist
+  if(!("NC_utility" %in% colnames(data)) || 
+     !("NC_tot" %in% colnames(data)) ||
+     !("NC_apot" %in% colnames(data)) || 
+     !("NC_pot_conc" %in% colnames(data)) ||
+     !("NC_pot_conv" %in% colnames(data))
+     )    {
+    
+    # If not, calculate them based on available data
+    if("forebrain_neurons" %in% colnames(data) && 
+       "aliveatanytime" %in% colnames(data) && 
+       "Welfare_level" %in% colnames(data)) {
+      
+      # Get human forebrain neurons for relative scaling
+      human_fneurons <- data %>%
+        filter(Category == "Humans") %>%
+        pull(forebrain_neurons) %>%
+        unique() %>%
+        .[1]  # Use just the first value
+      
+      # Calculate NC columns
+      data <- data %>%
+        mutate(
+          NC_potential = forebrain_neurons / human_fneurons,
+          NC_pot_conc = sqrt(NC_potential), 
+          NC_pot_conv = NC_potential^2,
+          NC_apot = aliveatanytime * NC_potential,
+          NC_utility = aliveatanytime * NC_potential * Welfare_level,
+          NC_tot = aliveatanytime * forebrain_neurons
+        )
+    } else {
+      stop("Required columns for NC calculations are missing.")
+    }
+  }
   
   return(data)
 }

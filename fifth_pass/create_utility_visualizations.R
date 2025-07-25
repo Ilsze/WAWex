@@ -31,21 +31,23 @@ create_utility_visualizations <- function(data,
   # 3. Prepare data for net series
   extended_data_for_net <- prepare_data_for_net_series(data, output_dir)
   
-  # 4a. Create tables
+  # 4 Create population tables
   create_population_tables_n_wta_wfi_fbe(extended_data_for_net, output_dir)
-  create_population_tables(extended_data_for_net, output_dir)
   
-  # 5a. Create four-panel population plot
+  # 5. Create treemaps
+  create_treemaps_n_wta_wfi_fbe(extended_data_for_net, output_dir)
+
+  # 6a. Create four-panel population plot
   create_four_panel_population_plots_n(extended_data_for_net, output_dir)
   create_four_panel_population_plots(extended_data_for_net, output_dir)
 
-  #5b. Create four-panel NC_tot plot
+  #6b. Create four-panel NC_tot plot
   create_four_panel_nc_tot_plots(extended_data_for_net, output_dir)
 
-  #5c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
+  #6c. Create four-panel NC_apot plot [doesn't need to be shown except in appendix]
   create_four_panel_nc_apot_plots(extended_data_for_net, output_dir)
 
-  #5d. Create four-panel NC score range
+  #6d. Create four-panel NC score range
   p4_from_four_panel_NC_score_range <-
     create_four_panel_nc_score_range_plots(extended_data_for_net, output_dir)
 
@@ -78,11 +80,7 @@ create_utility_visualizations <- function(data,
 #' @param output_dir Directory for saving visualizations
 #' @return NULL (saves plots to files)
 combine_utility_visualizations <- function(output_dir = "visualizations") {
-  
-  source("fifth_pass/welfare_analysis_framework.R")
-  
-  
-    # 1a. Create eight-panel population display
+  # 1a. Create eight-panel population display
   create_six_panel_population_display(output_dir = output_dir, 
                                         save_dir = "fifth_pass/welfare_results/six_figure_displays")
 }

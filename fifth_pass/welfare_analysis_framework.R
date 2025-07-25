@@ -1733,7 +1733,7 @@ prepare_data_for_net_series <- function(data,
 }
 
 
-#' Create styled population tables with color-coded rows AND treemaps
+#' Create styled population tables with color-coded rows (tables only)
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
 #' @param output_dir Directory for saving tables
@@ -1778,38 +1778,7 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     arrange(desc(aliveatanytime)) %>%
     select(Animal_Category, aliveatanytime, Group_Clean)
   
-  # Create treemap data with colors
-  treemap_data <- table_data %>%
-    mutate(
-      color = case_when(
-        Group_Clean == "Humans" ~ group_colors["Humans"],
-        Group_Clean == "Wild Animals" ~ group_colors["Wild Animals"],
-        Group_Clean == "Farmed Animals" ~ group_colors["Farmed Animals"],
-        TRUE ~ "grey50"
-      )
-    )
-  
-  # Create treemap
-  png(file.path(output_dir, "tables/population_treemap_2023_n_wta_wfi_fbe.png"), 
-      width = 12, height = 8, units = "in", res = 300)
-  
-  treemap(treemap_data,
-          index = "Animal_Category",
-          vSize = "aliveatanytime",
-          vColor = "color",
-          type = "color",
-          palette = unique(treemap_data$color),
-          title = "Population by Animal Category (2023)\nExcluding wild terrestrial arthropods, wild fish, and bees",
-          fontsize.title = 16,
-          fontsize.labels = 10,
-          fontcolor.labels = "white",
-          fontface.labels = "bold",
-          border.col = "white",
-          border.lwds = 2)
-  
-  dev.off()
-  
-  # TABLE 1: Individual Categories (existing code)
+  # TABLE 1: Individual Categories
   table1 <- table_data %>%
     select(Animal_Category, aliveatanytime, Group_Clean) %>%
     gt() %>%
@@ -1894,36 +1863,6 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
     ) %>%
     arrange(desc(Population))
   
-  # Create aggregated treemap
-  treemap_data_agg <- table2_data %>%
-    mutate(
-      color = case_when(
-        Animal_Group == "Humans" ~ group_colors["Humans"],
-        Animal_Group == "Wild Animals" ~ group_colors["Wild Animals"],
-        Animal_Group == "Farmed Animals" ~ group_colors["Farmed Animals"],
-        TRUE ~ "grey50"
-      )
-    )
-  
-  png(file.path(output_dir, "tables/population_treemap_aggregated_2023_n_wta_wfi_fbe.png"), 
-      width = 10, height = 6, units = "in", res = 300)
-  
-  treemap(treemap_data_agg,
-          index = "Animal_Group",
-          vSize = "Population",
-          vColor = "color",
-          type = "color",
-          palette = unique(treemap_data_agg$color),
-          title = "Population by Animal Group (2023)\nAggregated totals excluding wild terrestrial arthropods, wild fish, and bees",
-          fontsize.title = 16,
-          fontsize.labels = 12,
-          fontcolor.labels = "white",
-          fontface.labels = "bold",
-          border.col = "white",
-          border.lwds = 3)
-  
-  dev.off()
-  
   table2 <- table2_data %>%
     gt() %>%
     cols_label(
@@ -1990,32 +1929,24 @@ create_population_tables_n_wta_wfi_fbe <- function(data, output_dir = "visualiza
   gtsave(table1, file.path(output_dir, "tables/population_by_category_2023_n_wta_wfi_fbe.png"))
   gtsave(table2, file.path(output_dir, "tables/population_by_group_2023_n_wta_wfi_fbe.png"))
   
-  cat("Styled population tables and treemaps saved to:", output_dir, "\n")
-  cat("Files created: population_by_category_2023_wta_wfi_fbe.png, population_by_group_2023_wta_wfi_fbe.png\n")
-  cat("Treemaps created: population_treemap_2023_n_wta_wfi_fbe.png, population_treemap_aggregated_2023_n_wta_wfi_fbe.png\n")
+  cat("Styled population tables saved to:", output_dir, "\n")
+  cat("Files created: population_by_category_2023_n_wta_wfi_fbe.png, population_by_group_2023_n_wta_wfi_fbe.png\n")
 }
 
-#' Create styled population tables with color-coded rows AND treemaps (full dataset)
+#' Create treemaps for population, NC_tot, and NC_range variables
+#' (excluding wild terrestrial arthropods, wild fish, and bees)
 #' 
 #' @param data The extended_integrated_calc_tseries dataset
-#' @param output_dir Directory for saving tables
-#' @return NULL (saves tables to files)
-create_population_tables <- function(data, output_dir = "visualizations") {
+#' @param output_dir Directory for saving treemaps
+#' @return NULL (saves treemaps to files)
+create_treemaps_n_wta_wfi_fbe <- function(data, output_dir = "visualizations") {
   
   # Create directory if it doesn't exist
-  if(!dir.exists(paste0(output_dir, "/tables"))) {
-    dir.create(paste0(output_dir, "/tables"), recursive = TRUE)
+  if(!dir.exists(paste0(output_dir, "/treemaps"))) {
+    dir.create(paste0(output_dir, "/treemaps"), recursive = TRUE)
   }
   
-  cat("Creating styled population tables and treemaps...\n")
-  
-  # Load required packages for table styling
-  if(!require(gt)) {
-    stop("Package 'gt' is required for styled tables. Install with: install.packages('gt')")
-  }
-  if(!require(dplyr)) {
-    stop("Package 'dplyr' is required. Install with: install.packages('dplyr')")
-  }
+  cat("Creating treemaps for population, NC_tot, and NC_range...\n")
   
   # Define color palette matching the four-panel plots
   group_colors <- c(
@@ -2024,10 +1955,21 @@ create_population_tables <- function(data, output_dir = "visualizations") {
     "Farmed Animals" = "#20B2AA"
   )
   
-  table_data <- data %>%
+  # Filter data for 2023 and exclude specified categories
+  excluded_categories <- c("Wild terrestrial arthropods", "Wild fish", "Bees")
+  
+  # Prepare base data with NC_range calculation
+  base_data <- data %>%
     filter(Year == 2023, 
-           !is.na(aliveatanytime)) %>%
+           !Category %in% excluded_categories) %>%
     mutate(
+      # Calculate NC_range based on group
+      NC_range = case_when(
+        Category == "Humans" ~ NC_potential * aliveatanytime * 100,
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ NC_potential * aliveatanytime * -100,
+        Group == "Wild Animals" ~ NC_potential * aliveatanytime * 10,
+        TRUE ~ 0
+      ),
       # Add "Farmed" prefix to farmed animal categories
       Animal_Category = case_when(
         Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ paste("Farmed", Category),
@@ -2039,14 +1981,7 @@ create_population_tables <- function(data, output_dir = "visualizations") {
         Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
         Group == "Wild Animals" ~ "Wild Animals",
         TRUE ~ "Other"
-      )
-    ) %>%
-    arrange(desc(aliveatanytime)) %>%
-    select(Animal_Category, aliveatanytime, Group_Clean)
-  
-  # Create treemap data with colors
-  treemap_data <- table_data %>%
-    mutate(
+      ),
       color = case_when(
         Group_Clean == "Humans" ~ group_colors["Humans"],
         Group_Clean == "Wild Animals" ~ group_colors["Wild Animals"],
@@ -2055,17 +1990,22 @@ create_population_tables <- function(data, output_dir = "visualizations") {
       )
     )
   
-  # Create treemap
-  png(file.path(output_dir, "tables/population_treemap_2023.png"), 
+  # 1. POPULATION TREEMAP
+  pop_data <- base_data %>%
+    filter(!is.na(aliveatanytime), aliveatanytime > 0) %>%
+    arrange(desc(aliveatanytime)) %>%
+    select(Animal_Category, aliveatanytime, Group_Clean, color)
+  
+  png(file.path(output_dir, "treemaps/population_treemap_2023_n_wta_wfi_fbe.png"), 
       width = 12, height = 8, units = "in", res = 300)
   
-  treemap(treemap_data,
+  treemap(pop_data,
           index = "Animal_Category",
           vSize = "aliveatanytime",
           vColor = "color",
           type = "color",
-          palette = unique(treemap_data$color),
-          title = "Population by Animal Category (2023)",
+          palette = unique(pop_data$color),
+          title = "Population by Animal Category (2023)\nExcluding wild terrestrial arthropods, wild fish, and bees",
           fontsize.title = 16,
           fontsize.labels = 10,
           fontcolor.labels = "white",
@@ -2075,112 +2015,89 @@ create_population_tables <- function(data, output_dir = "visualizations") {
   
   dev.off()
   
-  # TABLE 1: Individual Categories (existing code)
-  table1 <- table_data %>%
-    select(Animal_Category, aliveatanytime, Group_Clean) %>%
-    gt() %>%
-    cols_hide(Group_Clean) %>%
-    cols_label(
-      Animal_Category = "Animal Category",
-      aliveatanytime = "Population (Alive at any time)"
-    ) %>%
-    fmt_number(
-      columns = aliveatanytime,
-      suffixing = TRUE,
-      decimals = 2
-    ) %>%
-    # Add color coding based on group
-    tab_style(
-      style = cell_fill(color = group_colors["Humans"]),
-      locations = cells_body(
-        rows = Group_Clean == "Humans"
-      )
-    ) %>%
-    tab_style(
-      style = cell_fill(color = group_colors["Wild Animals"]),
-      locations = cells_body(
-        rows = Group_Clean == "Wild Animals"
-      )
-    ) %>%
-    tab_style(
-      style = cell_fill(color = group_colors["Farmed Animals"]),
-      locations = cells_body(
-        rows = Group_Clean == "Farmed Animals"
-      )
-    ) %>%
-    tab_style(
-      style = cell_text(color = "white", weight = "bold"),
-      locations = cells_body()
-    ) %>%
-    tab_style(
-      style = cell_text(color = "white", weight = "bold", size = px(16)),
-      locations = cells_column_labels()
-    ) %>%
-    tab_style(
-      style = cell_fill(color = "grey20"),
-      locations = cells_column_labels()
-    ) %>%
-    tab_header(
-      title = md("**Population by Animal Category (2023)**"),
-      subtitle = "All categories including wild terrestrial arthropods, wild fish, and farmed bees"
-    ) %>%
-    tab_style(
-      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
-      locations = cells_title(groups = "title")
-    ) %>%
-    tab_style(
-      style = cell_text(color = "grey50", size = px(14)),
-      locations = cells_title(groups = "subtitle")
-    ) %>%
-    tab_options(
-      table.font.size = px(14),
-      heading.align = "left",
-      table.border.top.style = "hidden",
-      table.border.bottom.style = "hidden",
-      column_labels.border.bottom.width = px(2),
-      column_labels.border.bottom.color = "grey20"
-    )
+  # 2. NC_TOT TREEMAP
+  nc_tot_data <- base_data %>%
+    filter(!is.na(NC_tot), NC_tot > 0) %>%
+    arrange(desc(NC_tot)) %>%
+    select(Animal_Category, NC_tot, Group_Clean, color)
   
-  # TABLE 2: Aggregated Groups
-  table2_data <- data %>%
-    filter(Year == 2023,
-           !is.na(aliveatanytime)) %>%
+  png(file.path(output_dir, "treemaps/nc_tot_treemap_2023_n_wta_wfi_fbe.png"), 
+      width = 12, height = 8, units = "in", res = 300)
+  
+  treemap(nc_tot_data,
+          index = "Animal_Category",
+          vSize = "NC_tot",
+          vColor = "color",
+          type = "color",
+          palette = unique(nc_tot_data$color),
+          title = "Total Neurons by Animal Category (2023)\nExcluding wild terrestrial arthropods, wild fish, and bees",
+          fontsize.title = 16,
+          fontsize.labels = 10,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 2)
+  
+  dev.off()
+  
+  # 3. NC_RANGE TREEMAP (Welfare Range Score)
+  # For this treemap, we need to handle positive and negative values
+  # We'll use absolute values for sizing and show direction with labels
+  nc_range_data <- base_data %>%
+    filter(!is.na(NC_range), NC_range != 0) %>%
     mutate(
-      Animal_Group = case_when(
-        Category == "Humans" ~ "Humans",
-        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ "Farmed Animals",
-        Group == "Wild Animals" ~ "Wild Animals",
-        TRUE ~ "Other"
+      NC_range_abs = abs(NC_range),
+      NC_range_label = case_when(
+        NC_range > 0 ~ paste(Animal_Category, "(+)"),
+        NC_range < 0 ~ paste(Animal_Category, "(-)"),
+        TRUE ~ Animal_Category
       )
     ) %>%
-    group_by(Animal_Group) %>%
+    arrange(desc(NC_range_abs)) %>%
+    select(NC_range_label, NC_range_abs, Group_Clean, color)
+  
+  png(file.path(output_dir, "treemaps/nc_range_treemap_2023_n_wta_wfi_fbe.png"), 
+      width = 12, height = 8, units = "in", res = 300)
+  
+  treemap(nc_range_data,
+          index = "NC_range_label",
+          vSize = "NC_range_abs",
+          vColor = "color",
+          type = "color",
+          palette = unique(nc_range_data$color),
+          title = "Welfare Range Score by Animal Category (2023)\nExcluding wild terrestrial arthropods, wild fish, and bees\n(+) positive welfare, (-) negative welfare",
+          fontsize.title = 14,
+          fontsize.labels = 9,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 2)
+  
+  dev.off()
+  
+  # 4. AGGREGATED TREEMAPS
+  
+  # Population aggregated
+  pop_agg_data <- base_data %>%
+    filter(!is.na(aliveatanytime), aliveatanytime > 0) %>%
+    group_by(Group_Clean) %>%
     summarise(
       Population = sum(aliveatanytime, na.rm = TRUE),
+      color = first(color),
       .groups = "drop"
     ) %>%
     arrange(desc(Population))
   
-  # Create aggregated treemap
-  treemap_data_agg <- table2_data %>%
-    mutate(
-      color = case_when(
-        Animal_Group == "Humans" ~ group_colors["Humans"],
-        Animal_Group == "Wild Animals" ~ group_colors["Wild Animals"],
-        Animal_Group == "Farmed Animals" ~ group_colors["Farmed Animals"],
-        TRUE ~ "grey50"
-      )
-    )
-  
-  png(file.path(output_dir, "tables/population_treemap_aggregated_2023.png"), 
+  png(file.path(output_dir, "treemaps/population_treemap_aggregated_2023_n_wta_wfi_fbe.png"), 
       width = 10, height = 6, units = "in", res = 300)
   
-  treemap(treemap_data_agg,
-          index = "Animal_Group",
+  treemap(pop_agg_data,
+          index = "Group_Clean",
           vSize = "Population",
           vColor = "color",
           type = "color",
-          palette = unique(treemap_data_agg$color),
-          title = "Population by Animal Group (2023)\nAggregated totals for all categories",
+          palette = unique(pop_agg_data$color),
+          title = "Population by Animal Group (2023)\nAggregated totals excluding wild terrestrial arthropods, wild fish, and bees",
           fontsize.title = 16,
           fontsize.labels = 12,
           fontcolor.labels = "white",
@@ -2190,75 +2107,82 @@ create_population_tables <- function(data, output_dir = "visualizations") {
   
   dev.off()
   
-  table2 <- table2_data %>%
-    gt() %>%
-    cols_label(
-      Animal_Group = "Animal Group",
-      Population = "Population (Alive at any time)"
+  # NC_tot aggregated
+  nc_tot_agg_data <- base_data %>%
+    filter(!is.na(NC_tot), NC_tot > 0) %>%
+    group_by(Group_Clean) %>%
+    summarise(
+      NC_tot_total = sum(NC_tot, na.rm = TRUE),
+      color = first(color),
+      .groups = "drop"
     ) %>%
-    fmt_scientific(
-      columns = Population,
-      decimals = 2
-    ) %>%
-    # Add color coding based on group
-    tab_style(
-      style = cell_fill(color = group_colors["Humans"]),
-      locations = cells_body(
-        rows = Animal_Group == "Humans"
-      )
-    ) %>%
-    tab_style(
-      style = cell_fill(color = group_colors["Wild Animals"]),
-      locations = cells_body(
-        rows = Animal_Group == "Wild Animals"
-      )
-    ) %>%
-    tab_style(
-      style = cell_fill(color = group_colors["Farmed Animals"]),
-      locations = cells_body(
-        rows = Animal_Group == "Farmed Animals"
-      )
-    ) %>%
-    tab_style(
-      style = cell_text(color = "white", weight = "bold"),
-      locations = cells_body()
-    ) %>%
-    tab_style(
-      style = cell_text(color = "white", weight = "bold", size = px(16)),
-      locations = cells_column_labels()
-    ) %>%
-    tab_style(
-      style = cell_fill(color = "grey20"),
-      locations = cells_column_labels()
-    ) %>%
-    tab_header(
-      title = md("**Population by Animal Group (2023)**"),
-      subtitle = "Aggregated totals for all categories"
-    ) %>%
-    tab_style(
-      style = cell_text(color = "grey20", size = px(18), weight = "bold"),
-      locations = cells_title(groups = "title")
-    ) %>%
-    tab_style(
-      style = cell_text(color = "grey50", size = px(14)),
-      locations = cells_title(groups = "subtitle")
-    ) %>%
-    tab_options(
-      table.font.size = px(14),
-      heading.align = "left",
-      table.border.top.style = "hidden",
-      table.border.bottom.style = "hidden",
-      column_labels.border.bottom.width = px(2),
-      column_labels.border.bottom.color = "grey20"
-    )
+    arrange(desc(NC_tot_total))
   
-  # Save tables
-  gtsave(table1, file.path(output_dir, "tables/population_by_category_2023.png"))
-  gtsave(table2, file.path(output_dir, "tables/population_by_group_2023.png"))
+  png(file.path(output_dir, "treemaps/nc_tot_treemap_aggregated_2023_n_wta_wfi_fbe.png"), 
+      width = 10, height = 6, units = "in", res = 300)
   
-  cat("Full population tables and treemaps saved to:", output_dir, "\n")
-  cat("Files created: population_by_category_2023.png and population_by_group_2023.png\n")
-  cat("Treemaps created: population_treemap_2023.png, population_treemap_aggregated_2023.png\n")
+  treemap(nc_tot_agg_data,
+          index = "Group_Clean",
+          vSize = "NC_tot_total",
+          vColor = "color",
+          type = "color",
+          palette = unique(nc_tot_agg_data$color),
+          title = "Total Neurons by Animal Group (2023)\nAggregated totals excluding wild terrestrial arthropods, wild fish, and bees",
+          fontsize.title = 16,
+          fontsize.labels = 12,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 3)
+  
+  dev.off()
+  
+  # NC_range aggregated (handling positive/negative values)
+  nc_range_agg_data <- base_data %>%
+    filter(!is.na(NC_range), NC_range != 0) %>%
+    group_by(Group_Clean) %>%
+    summarise(
+      NC_range_total = sum(NC_range, na.rm = TRUE),
+      color = first(color),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      NC_range_abs = abs(NC_range_total),
+      Group_Label = case_when(
+        NC_range_total > 0 ~ paste(Group_Clean, "(+)"),
+        NC_range_total < 0 ~ paste(Group_Clean, "(-)"),
+        TRUE ~ Group_Clean
+      )
+    ) %>%
+    arrange(desc(NC_range_abs))
+  
+  png(file.path(output_dir, "treemaps/nc_range_treemap_aggregated_2023_n_wta_wfi_fbe.png"), 
+      width = 10, height = 6, units = "in", res = 300)
+  
+  treemap(nc_range_agg_data,
+          index = "Group_Label",
+          vSize = "NC_range_abs",
+          vColor = "color",
+          type = "color",
+          palette = unique(nc_range_agg_data$color),
+          title = "Welfare Range Score by Animal Group (2023)\nAggregated totals excluding wild terrestrial arthropods, wild fish, and bees\n(+) positive welfare, (-) negative welfare",
+          fontsize.title = 14,
+          fontsize.labels = 12,
+          fontcolor.labels = "white",
+          fontface.labels = "bold",
+          border.col = "white",
+          border.lwds = 3)
+  
+  dev.off()
+  
+  cat("Treemaps saved to:", file.path(output_dir, "treemaps"), "\n")
+  cat("Files created:\n")
+  cat("  - population_treemap_2023_n_wta_wfi_fbe.png\n")
+  cat("  - nc_tot_treemap_2023_n_wta_wfi_fbe.png\n")
+  cat("  - nc_range_treemap_2023_n_wta_wfi_fbe.png\n")
+  cat("  - population_treemap_aggregated_2023_n_wta_wfi_fbe.png\n")
+  cat("  - nc_tot_treemap_aggregated_2023_n_wta_wfi_fbe.png\n")
+  cat("  - nc_range_treemap_aggregated_2023_n_wta_wfi_fbe.png\n")
 }
 
 #' Create four-panel population comparison plots with stacked areas and simplified legends (excluding wild terrestrial arthropods, wild fish, and bees)

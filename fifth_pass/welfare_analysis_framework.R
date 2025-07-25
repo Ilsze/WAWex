@@ -194,7 +194,8 @@ ensure_nc_columns <- function(data) {
     .[1]  # Use just the first value
   
   #Create Welfare_level_max column based on our judgement
-  #UTH
+  data <- data %>% 
+    mutate(Welfare_level_max)
   
   
   

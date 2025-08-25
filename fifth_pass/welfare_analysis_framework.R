@@ -193,22 +193,25 @@ ensure_nc_columns <- function(data) {
     unique() %>%
     .[1]  # Use just the first value
   
-  #Create Welfare_level_max column based on our judgement
+  #Create Welfare_level_max column
+  ##.   Arguably this should go into an earlier operation to save redundant code in 
+  ##.   both ensure_nc_columns and ensure_wr_columns... project for another day lol
   data <- data %>% 
-    mutate(Welfare_level_max)
-  
-  
-  
-  # Calculate NC columns
-  data <- data %>%
-    mutate(
+    mutate(Welfare_level_range = case_when(
+      Category == "Humans" ~ 100,
+      Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ -100,
+      Group == "Wild Animals" ~ 1,
+      TRUE ~ 0  # Default for any unmatched categories
+    ),
+    
+    #Calculate NC columns
       NC_tot = aliveatanytime * forebrain_neurons,
       NC_potential = forebrain_neurons / human_fneurons,
       NC_pot_conc = sqrt(NC_potential), 
       NC_pot_conv = NC_potential^2,
       NC_apot = aliveatanytime * NC_potential,
       NC_utility = aliveatanytime * NC_potential * Welfare_level,
-      NC_umax = aliveatanytime * NC_potential * Welfare_level_max
+      NC_urange = aliveatanytime * NC_potential * Welfare_level_range
     )
   
   return(data)
@@ -219,26 +222,22 @@ ensure_nc_columns <- function(data) {
 #' @param data The dataset to check and modify
 #' @return Updated dataset with all WR columns
 ensure_wr_columns <- function(data) {
-  # Check if WR columns already exist
-  if(!("WR_utility" %in% colnames(data)) ||
-     !("WR_apot" %in% colnames(data))) {
-    
-    # If not, calculate them based on available data
-    if("WR_potential" %in% colnames(data) && 
-       "aliveatanytime" %in% colnames(data) && 
-       "Welfare_level" %in% colnames(data)) {
+  #Create Welfare_level_max column 
+  data <- data %>%
+    mutate(
+      # Create Welfare_level_max column (same logic as NC)
+      Welfare_level_range = case_when(
+        Category == "Humans" ~ 100,
+        Group %in% c("Farmed Terrestrial Animals", "Farmed Aquatic Animals (Slaughtered)") ~ -100,
+        Group == "Wild Animals" ~ 1,
+        TRUE ~ 0  # Default for any unmatched categories
+      ),
       
-      # Calculate WR columns
-      data <- data %>%
-        mutate(
-          WR_apot = aliveatanytime * WR_potential, 
-          WR_utility = aliveatanytime * WR_potential * Welfare_level
-        )
-    } else {
-      stop("Required columns for WR calculations are missing.")
-    }
-  }
-  
+      # Calculate WR_columns
+      WR_apot = aliveatanytime * WR_potential, 
+      WR_utility = aliveatanytime * WR_potential * Welfare_level,
+      WR_urange = aliveatanytime * WR_potential * Welfare_level_range
+    )
   return(data)
 }
 

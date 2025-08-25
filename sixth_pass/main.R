@@ -9,9 +9,13 @@ p_load(tidyverse, dplyr, readr, ggplot2, gridExtra, png, mgcv, tidyselect,
        patchwork, hrbrthemes, scales)
 
 # Source the integration script (which sources the other scripts)
-source("fifth_pass/integration.R")
-source("fifth_pass/welfare_analysis_framework.R")
-source("fifth_pass/create_utility_visualizations.R")
+# Set pass number first
+pass_number <- "sixth_pass"
+
+# Source the integration script (which sources the other scripts)
+source(paste0(pass_number, "/integration.R"))
+source(paste0(pass_number, "/welfare_analysis_framework.R"))
+source(paste0(pass_number, "/create_utility_visualizations.R"))
 
 # ==============================================================================
 # FLEXIBLE PRESENTATION CONFIGURATION
@@ -147,7 +151,7 @@ if(!is.null(presentation_config) && presentation_config$create_presentation_imag
 # ==============================================================================
 # RUN ANALYSIS 
 # ==============================================================================
-pass_number <- "sixth_pass" # Shuffling extend_animal_trends to integration.R
+# pass_number already set above
 
 all_results <- run_all_welfare_method_combinations(
   human_data_path = "dat/world_bank/world_bank_pop_gdp_clean.xlsx",
@@ -159,7 +163,7 @@ all_results <- run_all_welfare_method_combinations(
 )
 
 # Create combined visualisations
-source(paste0(pass_number, "_pass/create_utility_visualizations.R"))
+source(paste0(pass_number, "/create_utility_visualizations.R"))
 combine_utility_visualizations(output_dir = paste0(pass_number, 
                                                    "/welfare_results/3282/analysis_results/visualizations"))
 

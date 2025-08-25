@@ -7,7 +7,7 @@ p_load(tidyverse, dplyr, hrbrthemes, ggplot2, grid, gridExtra, gt, png, readr, m
        stringr, readxl, openxlsx, foreign, broom, knitr, data.table, dlm, 
        patchwork, scales, treemap)
 
-source("fifth_pass/create_utility_visualizations.R")
+source(paste0(pass_number, "/create_utility_visualizations.R"))
 
 
 #' Universal plot saving function that handles all output formats automatically
@@ -151,6 +151,10 @@ analyze_welfare_data <- function(calc_tseries,
       dir.create(vis_dir, recursive = TRUE)
     }
     
+    # Ensure calc_tseries has all required NC and WR columns before visualization
+    calc_tseries <- ensure_nc_columns(calc_tseries)
+    calc_tseries <- ensure_wr_columns(calc_tseries)
+    
     create_utility_visualizations(calc_tseries, 
                                   net_series,
                                   output_dir = vis_dir)
@@ -187,6 +191,8 @@ analyze_welfare_data <- function(calc_tseries,
 ensure_nc_columns <- function(data) {
   # Check if NC columns already exist
   if(!("NC_utility" %in% colnames(data)) || 
+     !("NC_u_conc" %in% colnames(data)) || 
+     !("NC_u_conv" %in% colnames(data)) || 
      !("NC_tot" %in% colnames(data)) ||
      !("NC_apot" %in% colnames(data)) || 
      !("NC_pot_conc" %in% colnames(data)) ||
@@ -213,6 +219,8 @@ ensure_nc_columns <- function(data) {
           NC_pot_conv = NC_potential^2,
           NC_apot = aliveatanytime * NC_potential,
           NC_utility = aliveatanytime * NC_potential * Welfare_level,
+          NC_u_conc = aliveatanytime * NC_pot_conc * Welfare_level,
+          NC_u_conv = aliveatanytime * NC_pot_conv * Welfare_level,
           NC_tot = aliveatanytime * forebrain_neurons
         )
     } else {
@@ -476,7 +484,7 @@ calculate_correlations_elasticities <- function(data) {
 calculate_correlations_elasticities_extended <- function() {
   
   # Read the extended data
-  extended_data <- read_excel("fifth_pass/dat/extended_integrated_calc_tseries.xlsx")
+  extended_data <- read_excel(paste0(pass_number, "/dat/extended_integrated_calc_tseries.xlsx"))
   
   # Define category groups
   excluded_categories <- c("Wild fish", "Wild terrestrial arthropods")
@@ -1015,6 +1023,7 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
   filtered_data_nc <- data %>%
     filter(!is.na(NC_utility), !is.na(aliveatanytime))
   
+  ######## PROGRESSIVE EXCLUSION - CHARACTERISTIC OF FOURTH PASS ###############
   # NC utility over time - all categories
   p_nc <- ggplot(filtered_data_nc, aes(x = Year, y = NC_utility, colour = Category, group = interaction(Group, Category))) +
     geom_line(size = 1) +
@@ -1220,7 +1229,270 @@ create_nc_utility_plots <- function(data, output_dir = "visualizations") {
   ggsave(file.path(output_dir, "NC_utility_trends_n_wta_wfi_hum_wtm_ffi_fch_wbi.pdf"), 
          plot = p_nc_n_wta_wfi_hum_wtm_ffi_fch_wbi, width = 10, height = 6)
   
-  cat("NC utility plots saved to:", output_dir, "\n")
+  cat("NC utility line plots saved to:", output_dir, "\n")
+}
+
+#' Create NC utility trend plots (line) for FAERE conferences
+#' 
+#' @param data The processed dataset
+#' @param output_dir Directory for saving visualizations
+#' @param subdirectory Subdirectory name
+#' @param potential_type Variable name to plot (as string)
+#' @return NULL (saves plots to files)
+create_nc_utility_plots_faere <- function(data, output_dir, subdirectory, potential_type) {
+  
+  # Create the full path and directory if it doesn't exist
+  full_output_dir <- file.path(output_dir, subdirectory)
+  if(!dir.exists(full_output_dir)) {
+    dir.create(full_output_dir, recursive = TRUE)
+  }
+  
+  # Define consistent color palette
+  category_colors <- c(
+    "Chickens" = "#E31A1C",           # Red
+    "Other Farmed Animals" = "#FF7F00", # Orange  
+    "Humans" = "#1F78B4",             # Blue
+    "Fish" = "#33A02C",               # Green
+    "Wild birds" = "#6A3D9A",         # Purple
+    "Wild terrestrial mammals" = "#B15928", # Brown
+    "Wild fish" = "#A6CEE3"           # Light blue
+  )
+  
+  # Determine plot prefix based on potential type
+  plot_prefix <- case_when(
+    potential_type == "NC_utility" ~ "A",      # linear
+    potential_type == "NC_u_conc" ~ "B",       # concave
+    potential_type == "NC_u_conv" ~ "C",       # convex
+    TRUE ~ "X"  # fallback
+  )
+  
+  ### DATA PREP ###
+  
+  # chicken, all other farmed (-farmed fish) data [2 lines]
+  dat_nc_fch_arf_n_ffi <- data %>% 
+    filter(Group != "Wild Animals", 
+           Category != "Fish", 
+           Category != "Bees",
+           Category != "Humans") %>% 
+    mutate(Category = case_when(
+      Category == "Chickens" ~ "Chickens",
+      TRUE ~ "Other Farmed Animals"  
+    )) %>%
+    group_by(Category, Year) %>%  
+    summarise(plot_value = sum(.data[[potential_type]], na.rm = TRUE),
+              .groups = "drop")
+  
+  # human, chicken, all other farmed (- farmed fish) data [3 lines]
+  dat_nc_hum_fch_arf_n_ffi <- data %>% 
+    filter(Group != "Wild Animals", 
+           Category != "Fish", 
+           Category != "Bees") %>% 
+    mutate(Category = case_when(
+      Category == "Chickens" ~ "Chickens",
+      Category == "Humans" ~ "Humans",
+      TRUE ~ "Other Farmed Animals"  
+    )) %>%
+    group_by(Category, Year) %>%  
+    summarise(plot_value = sum(.data[[potential_type]], na.rm = TRUE),
+              .groups = "drop")
+  
+  # 3 lines + farmed fish [4 lines]
+  dat_nc_ffi_hum_fch_arf <- data %>% 
+    filter(Group != "Wild Animals", 
+           Category != "Bees") %>% 
+    mutate(Category = case_when(
+      Category == "Chickens" ~ "Chickens",
+      Category == "Humans" ~ "Humans", 
+      Category == "Fish" ~ "Fish",
+      TRUE ~ "Other Farmed Animals"  
+    )) %>%
+    group_by(Category, Year) %>%  
+    summarise(plot_value = sum(.data[[potential_type]], na.rm = TRUE),
+              .groups = "drop")
+  
+  # 4 lines wild mammals + wild birds [6 lines]
+  dat_nc_ffi_hum_fch_arf_wbi_wtm <- data %>% 
+    filter(Category != "Bees", 
+           Category != "Wild fish",
+           Category != "Wild terrestrial arthropods") %>% 
+    mutate(Category = case_when(
+      Category == "Chickens" ~ "Chickens",
+      Category == "Humans" ~ "Humans", 
+      Category == "Fish" ~ "Fish",
+      Category == "Wild terrestrial mammals" ~ "Wild terrestrial mammals",
+      Category == "Wild birds" ~ "Wild birds",
+      TRUE ~ "Other Farmed Animals"  
+    )) %>%
+    group_by(Category, Year) %>%  
+    summarise(plot_value = sum(.data[[potential_type]], na.rm = TRUE),
+              .groups = "drop")
+  
+  # 6 lines + wild fish [7 lines]
+  dat_nc_ffi_hum_fch_arf_wbi_wtm_wfi <- data %>% 
+    filter(Category != "Bees",
+           Category != "Wild terrestrial arthropods") %>% 
+    mutate(Category = case_when(
+      Category == "Chickens" ~ "Chickens",
+      Category == "Humans" ~ "Humans", 
+      Category == "Fish" ~ "Fish",
+      Category == "Wild terrestrial mammals" ~ "Wild terrestrial mammals",
+      Category == "Wild birds" ~ "Wild birds",
+      Category == "Wild fish" ~ "Wild fish",
+      TRUE ~ "Other Farmed Animals"  
+    )) %>%
+    group_by(Category, Year) %>%  
+    summarise(plot_value = sum(.data[[potential_type]], na.rm = TRUE),
+              .groups = "drop")
+  
+  ### PLOTS ###
+  
+  # Chickens, all other farmed, no farmed fish, no humans [2 lines]
+  p_nc_fch_arf_n_ffi <- ggplot(dat_nc_fch_arf_n_ffi, aes(x = Year, y = plot_value, colour = Category)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = dat_nc_fch_arf_n_ffi %>% 
+                filter(Year == max(Year)),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = FALSE) +
+    scale_color_manual(values = category_colors) +
+    scale_x_continuous(limits = c(min(dat_nc_fch_arf_n_ffi$Year), 
+                                  max(dat_nc_fch_arf_n_ffi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 22, face = "bold"),
+      axis.title.x = element_text(size = 24),
+      axis.title.y = element_text(size = 24),
+      axis.text.x = element_text(size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.position = "none"
+    )
+  
+  ggsave(file.path(full_output_dir, paste0(plot_prefix, "1_trends_fch_arf_n_ffi.pdf")), 
+         plot = p_nc_fch_arf_n_ffi, width = 10, height = 6)
+  
+  # Humans, chickens, all other farmed, no farmed fish [3 lines]
+  p_nc_hum_fch_arf_n_ffi <- ggplot(dat_nc_hum_fch_arf_n_ffi, aes(x = Year, y = plot_value, colour = Category)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = dat_nc_hum_fch_arf_n_ffi %>% 
+                filter(Year == max(Year)),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = FALSE) +
+    scale_color_manual(values = category_colors) +
+    scale_x_continuous(limits = c(min(dat_nc_hum_fch_arf_n_ffi$Year), 
+                                  max(dat_nc_hum_fch_arf_n_ffi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 22, face = "bold"),
+      axis.title.x = element_text(size = 24),
+      axis.title.y = element_text(size = 24),
+      axis.text.x = element_text(size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.position = "none"
+    )
+  
+  ggsave(file.path(full_output_dir, paste0(plot_prefix, "2_trends_hum_fch_arf_n_ffi.pdf")), 
+         plot = p_nc_hum_fch_arf_n_ffi, width = 10, height = 6)
+  
+  # 3 lines + farmed fish [4 lines]
+  p_nc_ffi_hum_fch_arf <- ggplot(dat_nc_ffi_hum_fch_arf, aes(x = Year, y = plot_value, colour = Category)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = dat_nc_ffi_hum_fch_arf %>% 
+                filter(Year == max(Year)),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = FALSE) +
+    scale_color_manual(values = category_colors) +
+    scale_x_continuous(limits = c(min(dat_nc_ffi_hum_fch_arf$Year), 
+                                  max(dat_nc_ffi_hum_fch_arf$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 22, face = "bold"),
+      axis.title.x = element_text(size = 24),
+      axis.title.y = element_text(size = 24),
+      axis.text.x = element_text(size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.position = "none"
+    )
+  
+  ggsave(file.path(full_output_dir, paste0(plot_prefix, "3_trends_ffi_hum_fch_arf.pdf")), 
+         plot = p_nc_ffi_hum_fch_arf, width = 10, height = 6)
+  
+  # 4 lines wild mammals + wild birds [6 lines]
+  p_nc_ffi_hum_fch_arf_wbi_wtm <- ggplot(dat_nc_ffi_hum_fch_arf_wbi_wtm, aes(x = Year, y = plot_value, colour = Category)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = dat_nc_ffi_hum_fch_arf_wbi_wtm %>% 
+                filter(Year == max(Year)),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = FALSE) +
+    scale_color_manual(values = category_colors) +
+    scale_x_continuous(limits = c(min(dat_nc_ffi_hum_fch_arf_wbi_wtm$Year), 
+                                  max(dat_nc_ffi_hum_fch_arf_wbi_wtm$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 22, face = "bold"),
+      axis.title.x = element_text(size = 24),
+      axis.title.y = element_text(size = 24),
+      axis.text.x = element_text(size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.position = "none"
+    )
+  
+  ggsave(file.path(full_output_dir, paste0(plot_prefix, "4_trends_ffi_hum_fch_arf_wbi_wtm.pdf")), 
+         plot = p_nc_ffi_hum_fch_arf_wbi_wtm, width = 10, height = 6)
+  
+  # 6 lines + wild fish [7 lines]
+  p_nc_ffi_hum_fch_arf_wbi_wtm_wfi <- ggplot(dat_nc_ffi_hum_fch_arf_wbi_wtm_wfi, aes(x = Year, y = plot_value, colour = Category)) +
+    geom_line(size = 1) +
+    geom_hline(yintercept = 0, color = "grey70", linetype = "dashed", linewidth = 1) +
+    geom_text(data = dat_nc_ffi_hum_fch_arf_wbi_wtm_wfi %>% 
+                filter(Year == max(Year)),
+              aes(label = Category), 
+              hjust = -0.1, 
+              size = 3, 
+              check_overlap = FALSE) +
+    scale_color_manual(values = category_colors) +
+    scale_x_continuous(limits = c(min(dat_nc_ffi_hum_fch_arf_wbi_wtm_wfi$Year), 
+                                  max(dat_nc_ffi_hum_fch_arf_wbi_wtm_wfi$Year) + 30)) +
+    labs(title = "Utility Over Time - NC Method (1950-2025)", 
+         y = "Utility", 
+         x = "Year") +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(size = 22, face = "bold"),
+      axis.title.x = element_text(size = 24),
+      axis.title.y = element_text(size = 24),
+      axis.text.x = element_text(size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.position = "none"
+    )
+  
+  ggsave(file.path(full_output_dir, paste0(plot_prefix, "5_trends_ffi_hum_fch_arf_wbi_wtm_wfi.pdf")), 
+         plot = p_nc_ffi_hum_fch_arf_wbi_wtm_wfi, width = 10, height = 6) 
+  
+  cat("FAERE NC utility line plots saved to:", full_output_dir, "\n")
+  
 }
 
 #' Create WR utility trend plots with progressive category exclusions
@@ -1470,7 +1742,7 @@ create_wr_utility_plots <- function(data, output_dir = "visualizations") {
   ggsave(file.path(output_dir, "WR_utility_trends_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi.pdf"), 
          plot = p_wr_n_wta_wfi_fbe_ffi_fch_wtm_hum_wbi, width = 10, height = 6)
   
-  cat("WR utility plots saved to:", output_dir, "\n")
+  cat("WR utility line plots saved to:", output_dir, "\n")
 }
 
 #' Create styled population tables with color-coded rows (tables only)
@@ -3137,20 +3409,21 @@ create_six_panel_population_display <- function(output_dir = "visualizations",
   
   # Define file paths for the images and PDFs
   viz_dir <- output_dir
+  table_dir <- file.path(output_dir, "tables")
+  treemap_dir <- file.path(output_dir, "treemaps")
   
-  # Define all the files we need
-  required_files <- list(
-    # PNG Treemap
-    pop_treemap = file.path(table_dir, "population_treemap_2023_n_wta_wfi_fbe.png"),
-    
-    # Note that "load" operates on its own with no assigner. this abuse of notation is for my own personal reasons
-    # Claude can fix this
-    p1 = load(paste0(viz_dir, "/population_humans_only.rdata")),
-    p2 = load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe.rdata")),
-    p2b = load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe_ffi_fch.rdata")),
-    p3 = load(paste0(viz_dir, "/population_wild_stacked_n_wta_wfi.rdata")),
-    p4 = load(paste0(viz_dir, "/population_comparison_relative_n_wta_wfi_fbe.rdata"))
-  )
+  # Define file paths
+  treemap_file <- file.path(treemap_dir, "population_treemap_2023_n_wta_wfi_fbe.png")
+  
+  # Load plot objects from RData files
+  cat("Loading plot objects from RData files...\n")
+  load(paste0(viz_dir, "/population_humans_only.rdata"))
+  load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe.rdata"))
+  load(paste0(viz_dir, "/population_farmed_stacked_n_wta_wfi_fbe_ffi_fch.rdata"))
+  load(paste0(viz_dir, "/population_wild_stacked_n_wta_wfi.rdata"))
+  load(paste0(viz_dir, "/population_comparison_relative_n_wta_wfi_fbe.rdata"))
+  
+  # Note: The above load() calls should load objects with standard names like p1, p2, etc.
   
   # # Check that all required files exist
   # missing_files <- required_files[!file.exists(unlist(required_files))]
@@ -3170,7 +3443,7 @@ create_six_panel_population_display <- function(output_dir = "visualizations",
   
   cat("Loading PNG tables...\n")
   # Load PNG tables
-  g3 <- png_to_grob(required_files$pop_treemap)
+  g3 <- png_to_grob(treemap_file)
   
   # Add titles to each panel
   g3 <- g3 + ggtitle("A. Population Treemap (2023)")

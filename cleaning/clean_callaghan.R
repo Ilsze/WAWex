@@ -16,3 +16,7 @@ callaghan_total <- sum(callaghan_results$`Abundance estimate`)
 
 #save to excel
 write.xlsx(callaghan_results, "./dat/callaghan/callaghan_ss.xlsx")
+
+# #callaghan precise abundance
+# dat <- read.xlsx("dat/callaghan/callaghan_ss.xlsx")
+# It's 50516171834 individual birds

@@ -60,11 +60,13 @@ create_trend_extension_plots <- function(original_data, extended_data, output_di
 #' Extend animal population trends to match target time range for net series calculations
 #' 
 #' @param data The input dataset with all categories
+#' @param pass_number Pass number for dynamic path construction
 #' @param output_dir Directory for saving trend extension plots (default: "visualizations")
 #' @param target_year_range Year range to extend data to (default: 1960:2023)
 #' @param endpoint_years Number of years to use for endpoint trend calculation (default 5)
 #' @return Extended dataset suitable for net series calculations
 prepare_data_for_net_series <- function(data, 
+                                        pass_number,
                                         output_dir = "visualizations",
                                         target_year_range = 1960:2023,
                                         endpoint_years = 5) {
@@ -224,10 +226,14 @@ prepare_data_for_net_series <- function(data,
   cat("Trend extension plots saved to:", extension_plots_dir, "\n")
   
   # Ensure save directory for extended data exists
-  if(!dir.exists("fifth_pass/dat/")) {
-    dir.create("fifth_pass/dat/", recursive = TRUE)
+  save_dir <- paste0(pass_number, "/dat/")
+  if(!dir.exists(save_dir)) {
+    dir.create(save_dir, recursive = TRUE)
   }
   
   # Save extended data for reuse in cor and elas calculations
-  write.xlsx(extended_data, "fifth_pass/dat/extended_integrated_calc_tseries.xlsx")
+  write.xlsx(extended_data, paste0(pass_number, "/dat/extended_integrated_calc_tseries.xlsx"))
+  
+  # Return the extended data frame
+  return(extended_data)
 }

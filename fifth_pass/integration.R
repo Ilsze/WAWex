@@ -102,14 +102,14 @@ run_complete_welfare_analysis <- function(human_data_path,
                                                target_year_range = 1960:2023, 
                                                endpoint_years = 5)
   
-  #UTH: should ensure_nc_columns be called on integrated_data AND on extended_data separately? 
-  
   # Step 6: Ensure dataset has required potential and utility columns
   cat("Step 6: Calculating welfare potential and utility metrics...\n")
   # Ensure we have all necessary columns for both methods - always ensure both
   # sets of columns exist to avoid missing column errors in analysis
   integrated_data <- ensure_nc_columns(integrated_data)
   integrated_data <- ensure_wr_columns(integrated_data)
+  extended_data <- ensure_nc_columns(extended_data)
+  extended_data <- ensure_wr_columns(extended_data)
   
   # Save integrated data - with fixed path
   integrated_data_path <- file.path(output_dir, "integrated_calc_tseries.xlsx") 
